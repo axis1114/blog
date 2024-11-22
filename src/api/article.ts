@@ -1,9 +1,33 @@
 ﻿import { baseResponse, listDataType, paramsType, useAxios } from ".";
 
-export interface articleType {}
+export interface articleType {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  abstract: string;
+  content: string;
+  look_count: number;
+  comment_count: number;
+  digg_count: number;
+  collects_count: number;
+  user_id: number;
+  user_name: string;
+  category: string;
+  cover_id: number;
+  cover_url: string;
+  version: number;
+  status: string;
+}
+
+export interface articleParamsType extends paramsType {
+  category?: string;
+  sort_field?: string;
+  sort_order?: string;
+}
 
 export function articleList(
-  params: paramsType
+  params: articleParamsType
 ): Promise<baseResponse<listDataType<articleType>>> {
   return useAxios.get("/api/article/list", { params: { ...params } });
 }
