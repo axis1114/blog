@@ -37,6 +37,11 @@ func FailWithMsg(c *gin.Context, code ResCode, msg string) {
 	response(c, http.StatusOK, code, nil, msg)
 }
 
+// FailWithCode 带状态码的失败响应
+func FailWithCode(c *gin.Context, httpStatus int, code ResCode) {
+	response(c, httpStatus, code, nil, CodeMsg[code])
+}
+
 // response 统一响应处理
 func response(c *gin.Context, httpStatus int, code ResCode, data interface{}, msg string) {
 	if msg == "" {

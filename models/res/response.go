@@ -7,8 +7,8 @@ type Response struct {
 }
 
 type PageResponse[T any] struct {
-	List     T   `json:"list"`     // 数据列表
-	Total    int `json:"total"`    // 总数
-	Page     int `json:"page"`     // 当前页
-	PageSize int `json:"pageSize"` // 每页大小
+	List     T   `json:"list"`      // 数据列表
+	Total    int `json:"total"`     // 总数
+	Page     int `json:"page"`      // 当前页
+	PageSize int `json:"page_size"` // 每页大小
 }

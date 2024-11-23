@@ -62,6 +62,13 @@ func (u *User) UserLogin(c *gin.Context) {
 		return
 	}
 
+	err = user.UpdateToken(accessToken)
+	if err != nil {
+		global.Log.Error("更新用户token失败", zap.Error(err))
+		res.Fail(c, res.CodeInternalError)
+		return
+	}
+
 	c.Request.Header.Set("Authorization", "Bearer "+accessToken)
 
 	refreshToken, err := utils.GenerateRefreshToken(user.ID)

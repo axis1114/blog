@@ -5,6 +5,7 @@ import (
 	"blog/models/ctypes"
 	"blog/models/res"
 	"blog/utils"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -14,9 +15,10 @@ import (
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.Request.Header.Get("Authorization")
+		global.Log.Info("tokenString", zap.String("tokenString", tokenString))
 		// 检查 Token 是否存在并去除 "Bearer " 前缀
 		if len(tokenString) < 7 || tokenString[:7] != "Bearer " {
-			res.Fail(c, res.CodeUnauthorized)
+			res.FailWithCode(c, http.StatusUnauthorized, res.CodeUnauthorized)
 			c.Abort()
 			return
 		}
@@ -29,7 +31,7 @@ func JwtAuth() gin.HandlerFunc {
 				newAccessToken, refreshErr := utils.RefreshAccessToken(tokenString, claims.UserID)
 				if refreshErr != nil || newAccessToken == "" {
 					global.Log.Error("token刷新失败", zap.Error(refreshErr))
-					res.Fail(c, res.CodeTokenExpired)
+					res.FailWithCode(c, http.StatusUnauthorized, res.CodeTokenExpired)
 					c.Abort()
 					return
 				}

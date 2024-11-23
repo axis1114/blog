@@ -87,6 +87,10 @@ func NewArticleService() *ArticleService {
 
 // CreateIndex 创建索引
 func (s *ArticleService) CreateIndex() error {
+	if s.ctx == nil {
+		s.ctx = context.Background()
+	}
+
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
 
@@ -296,7 +300,7 @@ func (s *ArticleService) SearchArticles(params SearchParams) (*SearchResult, err
 
 	// 只搜索已发布的文章
 	termQuery := types.NewTermQuery()
-	termQuery.Value = ArticleStatusPublished
+	termQuery.Value = ArticleStatusDraft
 	boolQuery.Must = append(boolQuery.Must, types.Query{Term: map[string]types.TermQuery{"status": *termQuery}})
 
 	searchRequest := global.Es.Search().
@@ -382,9 +386,9 @@ func (s *ArticleService) deleteCache(id string) error {
 // SearchParams 搜索参数
 type SearchParams struct {
 	PageInfo
-	Category  string
-	SortField string
-	SortOrder string
+	Category  string `json:"category" form:"category"`
+	SortField string `json:"sort_field" form:"sort_field"`
+	SortOrder string `json:"sort_order" form:"sort_order"`
 }
 
 // SearchResult 搜索结果

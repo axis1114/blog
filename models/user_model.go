@@ -95,3 +95,8 @@ func (u *UserModel) UpdateProfile(updates map[string]interface{}) error {
 
 	return global.DB.Model(u).Updates(updates).Error
 }
+
+// UpdateToken 更新用户token
+func (u *UserModel) UpdateToken(token string) error {
+	return global.DB.Model(u).Update("token", token).Error
+}
