@@ -1,13 +1,19 @@
-﻿import { Layout, Switch } from 'antd';
-import { BulbOutlined } from '@ant-design/icons';
+﻿import { Layout, Switch, Button } from 'antd';
+import { BulbOutlined, LogoutOutlined, HomeOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleTheme } from '@/store/slice';
+import { logout, toggleTheme } from '@/store/slice';
+import { useNavigate } from 'react-router-dom';
 
 const { Header } = Layout;
 
 export const NavbarBackend = () => {
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const isDarkMode = useSelector((state: any) => state.web.theme.isDarkMode);
+
+    const handleLogout = () => {
+        dispatch(logout());
+    };
 
     return (
         <Header
@@ -40,15 +46,28 @@ export const NavbarBackend = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <a
-                        href="/"
+                    <Button
+                        type="link"
+                        icon={<HomeOutlined />}
+                        onClick={() => navigate('/')}
                         style={{
                             color: isDarkMode ? '#fff' : '#001529',
-                            marginRight: '16px'
+                            marginRight: '16px',
                         }}
                     >
                         返回首页
-                    </a>
+                    </Button>
+                    <Button
+                        type="link"
+                        icon={<LogoutOutlined />}
+                        onClick={handleLogout}
+                        style={{
+                            color: isDarkMode ? '#fff' : '#001529',
+                            marginRight: '16px',
+                        }}
+                    >
+                        注销
+                    </Button>
                     <Switch
                         checkedChildren={<BulbOutlined />}
                         unCheckedChildren={<BulbOutlined />}

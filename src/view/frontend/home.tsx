@@ -81,7 +81,6 @@ export const WebHome = () => {
                         style: {
                             textAlign: 'center',
                             marginTop: '20px',
-                            marginBottom: '20px',
                             display: 'flex',
                             justifyContent: 'center'
                         },
@@ -92,7 +91,7 @@ export const WebHome = () => {
                             style={{
                                 padding: '28px 32px',
                                 transition: 'all 0.3s ease',
-                                borderBottom: `1px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
+                                borderBottom: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
                             }}
                         >
                             {/* 主要内容区域 */}

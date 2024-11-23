@@ -28,8 +28,10 @@ export interface userInfoType {
   role: string;
 }
 
-export function userInfo(): Promise<baseResponse<userInfoType>> {
-  return useAxios.get("/api/user");
+export function userInfo(header?: {
+  headers: { Authorization: string };
+}): Promise<baseResponse<userInfoType>> {
+  return useAxios.get("/api/user", header);
 }
 
 export function userList(

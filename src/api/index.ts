@@ -9,7 +9,7 @@ export const useAxios = axios.create({
 
 export interface baseResponse<T> {
   code: number;
-  message: string;
+  msg: string;
   data: T;
 }
 
@@ -47,17 +47,16 @@ useAxios.interceptors.request.use(
  */
 useAxios.interceptors.response.use(
   (response) => {
-    const authHeader =
-      response.headers["authorization"] || response.headers["Authorization"];
-    if (authHeader?.startsWith("Bearer ")) {
-      store.dispatch(updateToken(authHeader.slice(7)));
+    const token = response.headers["Authorization"];
+    if (token) {
+      const newToken = token.replace("Bearer ", "");
+      store.dispatch(updateToken(newToken));
     }
     return response.data;
   },
   (error: AxiosError) => {
     if (error.response) {
       const status = error.response.status;
-
       switch (status) {
         case 401:
           store.dispatch(logout());

@@ -5,6 +5,11 @@ import { WebIndex } from "@/view/frontend/index";
 import { WebHome } from "@/view/frontend/home";
 import { AdminIndex } from "@/view/backend/index";
 import { AdminHome } from "@/view/backend/home";
+import { AdminLogin } from "@/components/login/login";
+import { AuthGuard } from "@/components/authguard/authguard";
+import { AdminArticle } from "@/view/backend/artilce";
+import { AdminImage } from "@/view/backend/image";
+
 type BaseRouteType = {
   meta?: {
     name?: string;
@@ -27,9 +32,21 @@ export const routerObj: RouteType[] = [
     children: [{ path: "", element: <WebHome /> }],
   },
   {
+    path: "/login",
+    element: <AdminLogin />,
+  },
+  {
     path: "/admin",
-    element: <AdminIndex />,
-    children: [{ path: "", element: <AdminHome /> }],
+    element: (
+      <AuthGuard>
+        <AdminIndex />
+      </AuthGuard>
+    ),
+    children: [
+      { path: "", element: <AdminHome /> },
+      { path: "articles", element: <AdminArticle /> },
+      { path: "images", element: <AdminImage /> },
+    ],
   },
 ];
 
