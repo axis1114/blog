@@ -3,6 +3,8 @@
 import { createBrowserRouter, RouteObject } from "react-router-dom";
 import { WebIndex } from "@/view/frontend/index";
 import { WebHome } from "@/view/frontend/home";
+import { AdminIndex } from "@/view/backend/index";
+import { AdminHome } from "@/view/backend/home";
 type BaseRouteType = {
   meta?: {
     name?: string;
@@ -22,7 +24,12 @@ export const routerObj: RouteType[] = [
   {
     path: "/",
     element: <WebIndex />,
-    children: [{ path: "/", element: <WebHome /> }],
+    children: [{ path: "", element: <WebHome /> }],
+  },
+  {
+    path: "/admin",
+    element: <AdminIndex />,
+    children: [{ path: "", element: <AdminHome /> }],
   },
 ];
 

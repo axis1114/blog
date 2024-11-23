@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 const { Title, Paragraph } = Typography;
 
 // 扩展 articleParamsType 接口来包含总数
-interface PaginationState extends Omit<articleParamsType, 'keyword'> {
+interface PaginationState extends articleParamsType {
     total: number;
 }
 
@@ -93,9 +93,6 @@ export const WebHome = () => {
                                 padding: '28px 32px',
                                 transition: 'all 0.3s ease',
                                 borderBottom: `1px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
-                                '&:hover': {
-                                    backgroundColor: isDarkMode ? '#1f1f1f' : '#fafafa',
-                                }
                             }}
                         >
                             {/* 主要内容区域 */}

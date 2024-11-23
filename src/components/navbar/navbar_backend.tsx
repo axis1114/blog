@@ -1,28 +1,13 @@
-﻿import { Layout, Menu, Switch } from 'antd';
+﻿import { Layout, Switch } from 'antd';
 import { BulbOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '@/store/slice';
 
 const { Header } = Layout;
 
-export const Navbar = () => {
+export const NavbarBackend = () => {
     const dispatch = useDispatch();
     const isDarkMode = useSelector((state: any) => state.web.theme.isDarkMode);
-
-    const navItems = [
-        { label: '首页', key: '/', path: '/' },
-        { label: '项目', key: '/projects', path: '/projects' },
-        { label: '关于', key: '/about', path: '/about' },
-    ];
-
-    const menuItems = navItems.map(item => ({
-        key: item.key,
-        label: (
-            <a href={item.path}>
-                {item.label}
-            </a>
-        ),
-    }));
 
     return (
         <Header
@@ -32,9 +17,9 @@ export const Navbar = () => {
                 width: '100%',
                 zIndex: 100,
                 padding: '0 24px',
-                backgroundColor: isDarkMode ? '#1f1f1f' : '#fafafa',
+                backgroundColor: isDarkMode ? '#001529' : '#fff',
                 borderBottom: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
-                height: '100px',
+                height: '64px',
             }}
         >
             <div style={{
@@ -45,28 +30,25 @@ export const Navbar = () => {
                 alignItems: 'center',
             }}>
                 <div style={{
-                    fontSize: '30px',
+                    fontSize: '20px',
                     fontWeight: '500',
-                    color: isDarkMode ? '#e6e6e6' : '#262626',
+                    color: isDarkMode ? '#fff' : '#001529',
                 }}>
-                    <a href="/" style={{ color: 'inherit' }}>
-                        NSXZ 溺水寻舟的博客
+                    <a href="/admin" style={{ color: 'inherit' }}>
+                        NSXZ 后台管理
                     </a>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Menu
-                        mode="horizontal"
-                        selectedKeys={[window.location.pathname]}
-                        items={menuItems}
+                    <a
+                        href="/"
                         style={{
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            fontSize: '18px',
+                            color: isDarkMode ? '#fff' : '#001529',
+                            marginRight: '16px'
                         }}
-                        theme={isDarkMode ? 'dark' : 'light'}
-                    />
-
+                    >
+                        返回首页
+                    </a>
                     <Switch
                         checkedChildren={<BulbOutlined />}
                         unCheckedChildren={<BulbOutlined />}
@@ -74,7 +56,6 @@ export const Navbar = () => {
                         onChange={() => dispatch(toggleTheme())}
                         style={{
                             marginLeft: '16px',
-                            scale: '0.9'
                         }}
                     />
                 </div>

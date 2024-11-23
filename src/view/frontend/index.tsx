@@ -1,10 +1,10 @@
 ﻿import { Outlet } from "react-router-dom";
-import { Navbar } from "@/components/navbar/navbar";
-export const WebIndex: React.FC = () => {
+import { NavbarFrontend } from "@/components/navbar/navbar_frontend";
+export const WebIndex = () => {
     return (
         <div className="web_index flex flex-col">
-            <Navbar />
-            <main className="pt-[100px] w-full">
+            <NavbarFrontend />
+            <main className="pt-[100px] w-full flex-1">
                 <Outlet />
             </main>
         </div>
