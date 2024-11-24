@@ -19,3 +19,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 搜索框样式覆盖 */
+.square-search-input .ant-input {
+  border-radius: 0 !important;
+}
+
+.square-search-input .ant-input-search-button {
+  border-radius: 0 !important;
+}
+
+.square-search-input .ant-input-group-addon {
+  border-radius: 0 !important;
+}
+
+.square-search-input .ant-input-affix-wrapper {
+  border-radius: 0 !important;
+}
+
+.square-search-input .ant-btn {
+  border-radius: 0 !important;
+}
+
+/* 确保在获得焦点时也保持直角 */
+.square-search-input .ant-input:focus,
+.square-search-input .ant-input-focused,
+.square-search-input .ant-input-affix-wrapper:focus,
+.square-search-input .ant-input-affix-wrapper-focused {
+  border-radius: 0 !important;
+}

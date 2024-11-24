@@ -49,3 +49,7 @@ export interface userCreateType {
 export function userCreate(req: userCreateType): Promise<baseResponse<string>> {
   return useAxios.post("/api/user", req);
 }
+
+export function userDelete(id: number): Promise<baseResponse<string>> {
+  return useAxios.delete(`/api/user/${id}`);
+}

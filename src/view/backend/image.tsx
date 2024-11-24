@@ -64,13 +64,23 @@ export const AdminImage = () => {
     // 上传图片
     const handleUpload = async (file: RcFile) => {
         try {
-            await imageUpload([file]);
+            const files = file instanceof FileList ? Array.from(file) : [file];
+            await imageUpload(files);
             message.success("上传成功");
             fetchData(pagination.page);
         } catch (error) {
             message.error("上传失败");
         }
-        return false; // 阻止 Upload 组件默认上传行为
+        return false;
+    };
+
+    // 添加文件类型和大小限制
+    const uploadProps = {
+        beforeUpload: handleUpload,
+        showUploadList: false,
+        accept: 'image/*',
+        maxSize: 20 * 1024 * 1024, // 20MB
+        multiple: true,
     };
 
     const columns: ColumnsType<imageType> = [
@@ -131,21 +141,26 @@ export const AdminImage = () => {
 
     return (
         <div className="admin_image">
-            <div style={{ marginBottom: 16 }}>
-                <Upload
-                    beforeUpload={handleUpload}
-                    showUploadList={false}
-                >
-                    <Button icon={<UploadOutlined />} type="primary">
-                        上传图片
-                    </Button>
-                </Upload>
+            <div>
+                <Upload.Dragger {...uploadProps}>
+                    <p className="ant-upload-drag-icon">
+                        <UploadOutlined style={{ fontSize: 48, color: '#40a9ff' }} />
+                    </p>
+                    <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
+                    <p className="ant-upload-hint">
+                        支持同时上传多张图片，单个文件大小不超过20MB
+                    </p>
+                </Upload.Dragger>
             </div>
             <Table
                 columns={columns}
                 dataSource={data}
                 rowKey="id"
-                pagination={pagination}
+                pagination={{
+                    ...pagination,
+                    position: ['bottomCenter'],
+                    style: { marginTop: '16px' }
+                }}
                 loading={loading}
                 onChange={(pagination) => fetchData(pagination.current)}
             />

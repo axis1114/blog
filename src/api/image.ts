@@ -22,10 +22,33 @@ export function imageDelete(id: number): Promise<baseResponse<string>> {
   return useAxios.delete(`/api/image/${id}`);
 }
 
-export function imageUpload(files: File[]): Promise<baseResponse<string>> {
-  const formData = new FormData();
+export interface imageUploadType {
+  files: {
+    file_name: string;
+    is_success: boolean;
+    msg: string;
+    size: number;
+    hash: string;
+  }[];
+}
+
+export function imageUpload(
+  files: File[]
+): Promise<baseResponse<imageUploadType>> {
+  // 验证文件
+  const validFiles: File[] = [];
 
   files.forEach((file) => {
+    validFiles.push(file);
+  });
+
+  // 如果没有有效文件，直接返回错误
+  if (validFiles.length === 0) {
+    return Promise.reject(new Error("没有有效的图片文件"));
+  }
+
+  const formData = new FormData();
+  validFiles.forEach((file) => {
     formData.append("images", file);
   });
 

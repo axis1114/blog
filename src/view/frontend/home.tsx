@@ -1,14 +1,14 @@
 ﻿import { useEffect, useState } from 'react';
 import { articleList, articleType, articleParamsType, } from '../../api/article';
-import { Row, Col, List, Typography, Space, Tag } from 'antd';
-import { EyeOutlined, LikeOutlined, MessageOutlined } from '@ant-design/icons';
-import { useSelector } from 'react-redux';
+import { Row, Col, List, Typography, Space, Tag, Input, Card, AutoComplete } from 'antd';
+import { EyeOutlined, LikeOutlined, MessageOutlined, SearchOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
 
 // 扩展 articleParamsType 接口来包含总数
 interface PaginationState extends articleParamsType {
     total: number;
+    keyword?: string;
 }
 
 export const WebHome = () => {
@@ -20,9 +20,13 @@ export const WebHome = () => {
         total: 0,
         category: undefined,
         sort_field: undefined,
-        sort_order: undefined
+        sort_order: undefined,
+        key: undefined
     });
-    const isDarkMode = useSelector((state: any) => state.web.theme.isDarkMode);
+    const [categories] = useState([
+        '全部', '技术', '生活', '随笔', '前端', '后端', '数据库', '运维'
+    ]);
+    const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]);
 
     const fetchArticles = async (page = pagination.page, pageSize = pagination.page_size) => {
         setLoading(true);
@@ -30,9 +34,10 @@ export const WebHome = () => {
             const params: articleParamsType = {
                 page,
                 page_size: pageSize,
-                category: pagination.category,
+                category: pagination.category === '全部' ? undefined : pagination.category,
                 sort_field: pagination.sort_field,
-                sort_order: pagination.sort_order
+                sort_order: pagination.sort_order,
+                key: pagination.keyword
             };
             const res = await articleList(params);
             setArticles(res.data.list);
@@ -55,6 +60,38 @@ export const WebHome = () => {
         fetchArticles(page, pageSize);
     };
 
+    const handleSearch = (value: string) => {
+        setPagination(prev => ({
+            ...prev,
+            page: 1,
+            keyword: value
+        }));
+        fetchArticles(1);
+    };
+
+    const handleSearchInput = async (value: string) => {
+        if (!value.trim()) {
+            setSearchSuggestions([]);
+            return;
+        }
+
+        try {
+            const params: articleParamsType = {
+                page: 1,
+                page_size: 5,
+                key: value,
+            };
+            const res = await articleList(params);
+            setSearchSuggestions(res.data.list);
+        } catch (error) {
+            console.error('获取搜索建议失败:', error);
+        }
+    };
+
+    const handleSelect = (value: string, option: any) => {
+        window.location.href = `/article/${option.key}`;
+    };
+
     useEffect(() => {
         fetchArticles();
     }, []);
@@ -67,8 +104,8 @@ export const WebHome = () => {
                     itemLayout="vertical"
                     dataSource={articles}
                     style={{
-                        borderRight: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
-                        backgroundColor: isDarkMode ? '#141414' : '#ffffff',
+                        borderRight: '2px solid #f0f0f0',
+                        backgroundColor: '#ffffff',
                     }}
                     pagination={{
                         current: pagination.page,
@@ -91,21 +128,13 @@ export const WebHome = () => {
                             style={{
                                 padding: '28px 32px',
                                 transition: 'all 0.3s ease',
-                                borderBottom: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
+                                borderBottom: '2px solid #f0f0f0',
                             }}
                         >
-                            {/* 主要内容区域 */}
                             <div style={{ display: 'flex', gap: '32px' }}>
-                                {/* 左侧：文章主体内容 */}
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    {/* 标题和分类 */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <a href={`/article/${item.id}`}
-                                            style={{
-                                                flex: 1,
-                                                color: isDarkMode ? '#e6e6e6' : 'inherit',
-                                            }}
-                                        >
+                                        <a href={`/article/${item.id}`} style={{ flex: 1, color: 'inherit' }}>
                                             <Title level={5} style={{
                                                 margin: 0,
                                                 fontSize: '22px',
@@ -116,12 +145,12 @@ export const WebHome = () => {
                                             </Title>
                                         </a>
                                         <Tag
-                                            color={isDarkMode ? 'dark' : 'default'}
+                                            color="default"
                                             style={{
                                                 marginLeft: '20px',
                                                 fontSize: '15px',
                                                 padding: '6px 20px',
-                                                backgroundColor: isDarkMode ? '#262626' : '#f5f5f5',
+                                                backgroundColor: '#f5f5f5',
                                                 border: 'none'
                                             }}
                                         >
@@ -129,12 +158,11 @@ export const WebHome = () => {
                                         </Tag>
                                     </div>
 
-                                    {/* 摘要 */}
                                     <Paragraph
                                         type="secondary"
                                         ellipsis={{ rows: 2 }}
                                         style={{
-                                            color: isDarkMode ? '#8c8c8c' : '#595959',
+                                            color: '#595959',
                                             fontSize: '18px',
                                             lineHeight: 1.8,
                                             margin: 0
@@ -143,38 +171,35 @@ export const WebHome = () => {
                                         {item.abstract}
                                     </Paragraph>
 
-                                    {/* 底部信息栏 */}
                                     <div style={{
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
                                         marginTop: 'auto'
                                     }}>
-                                        {/* 作者和日期 */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                             <span style={{
-                                                color: isDarkMode ? '#a6a6a6' : '#595959',
+                                                color: '#595959',
                                                 fontSize: '18px',
                                                 fontWeight: 500
                                             }}>
                                                 {item.user_name}
                                             </span>
                                             <span style={{
-                                                color: isDarkMode ? '#8c8c8c' : '#8c8c8c',
+                                                color: '#8c8c8c',
                                                 fontSize: '17px'
                                             }}>
                                                 {new Date(item.created_at).toLocaleDateString()}
                                             </span>
                                         </div>
 
-                                        {/* 文章数据 */}
                                         <div style={{ display: 'flex', gap: '32px' }}>
                                             <Space size={12}>
                                                 <EyeOutlined style={{ fontSize: '20px' }} />
                                                 <span style={{
                                                     fontSize: '20px',
                                                     fontWeight: 500,
-                                                    color: isDarkMode ? '#a6a6a6' : '#595959'
+                                                    color: '#595959'
                                                 }}>
                                                     {item.look_count}
                                                 </span>
@@ -184,7 +209,7 @@ export const WebHome = () => {
                                                 <span style={{
                                                     fontSize: '20px',
                                                     fontWeight: 500,
-                                                    color: isDarkMode ? '#a6a6a6' : '#595959'
+                                                    color: '#595959'
                                                 }}>
                                                     {item.digg_count}
                                                 </span>
@@ -194,7 +219,7 @@ export const WebHome = () => {
                                                 <span style={{
                                                     fontSize: '20px',
                                                     fontWeight: 500,
-                                                    color: isDarkMode ? '#a6a6a6' : '#595959'
+                                                    color: '#595959'
                                                 }}>
                                                     {item.comment_count}
                                                 </span>
@@ -203,7 +228,6 @@ export const WebHome = () => {
                                     </div>
                                 </div>
 
-                                {/* 右侧：封面图片 */}
                                 {item.cover_url && (
                                     <div style={{
                                         flexShrink: 0,
@@ -228,7 +252,51 @@ export const WebHome = () => {
                 />
             </Col>
 
-            <Col span={6} style={{ backgroundColor: isDarkMode ? '#141414' : '#ffffff' }}>
+            <Col span={6} style={{ backgroundColor: '#ffffff', padding: '0px' }}>
+                <div style={{ padding: '20px' }}>
+                    <AutoComplete
+                        style={{ width: '100%' }}
+                        onSearch={handleSearchInput}
+                        onSelect={handleSelect}
+                        dropdownStyle={{
+                            maxHeight: '400px',
+                            overflow: 'auto',
+                            padding: '12px',
+                            borderRadius: '0',
+                            marginTop: '6px',
+                            border: '1px solid #d9d9d9',
+                            borderTop: '1px solid #d9d9d9'
+                        }}
+                        options={searchSuggestions.map(article => ({
+                            label: (
+                                <div style={{
+                                    padding: '8px',
+                                }}>
+                                    <div style={{
+                                        fontSize: '15px',
+                                        marginBottom: '4px',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                    }}>
+                                        {article.title}
+                                    </div>
+                                </div>
+                            ),
+                            value: article.title,
+                            key: article.id
+                        }))}
+                    >
+                        <Input.Search
+                            placeholder="搜索文章..."
+                            allowClear
+                            enterButton={<SearchOutlined />}
+                            size="large"
+                            onSearch={handleSearch}
+                            className="square-search-input"
+                        />
+                    </AutoComplete>
+                </div>
             </Col>
         </Row>
     );

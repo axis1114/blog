@@ -65,6 +65,12 @@ export function articleUpdate(
   return useAxios.put("/api/article", data);
 }
 
-export function articleDelete(id: string): Promise<baseResponse<string>> {
-  return useAxios.delete(`/api/article/${id}`);
+export interface DeleteParams {
+  id_list: string[];
+}
+
+export function articleDelete(
+  data: DeleteParams
+): Promise<baseResponse<string>> {
+  return useAxios.post(`/api/article/delete`, data);
 }

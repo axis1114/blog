@@ -23,7 +23,7 @@ export interface listDataType<T> {
 export interface paramsType {
   page?: number;
   page_size?: number;
-  keyword?: string;
+  key?: string;
 }
 
 /**
@@ -59,8 +59,8 @@ useAxios.interceptors.response.use(
       const status = error.response.status;
       switch (status) {
         case 401:
-          store.dispatch(logout());
           message.warning("请重新登录");
+          store.dispatch(logout());
           break;
         case 404:
           message.warning("请求的资源不存在");

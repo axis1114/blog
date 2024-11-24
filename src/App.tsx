@@ -3,11 +3,10 @@ import { router } from "./router/index";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { initializeFromStorage } from "./store/slice";
-import { ConfigProvider, theme, Spin } from 'antd';
+import { Spin } from 'antd';
 import { RootState } from './store/index';
 
 export const App = () => {
-  const { isDarkMode } = useSelector((state: RootState) => state.web.theme);
   const isInitialized = useSelector((state: RootState) => state.web.isInitialized);
   const dispatch = useDispatch();
 
@@ -25,13 +24,7 @@ export const App = () => {
 
   return (
     <div className="app">
-      <ConfigProvider
-        theme={{
-          algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        }}
-      >
-        <RouterProvider future={{ v7_startTransition: true }} router={router} />
-      </ConfigProvider>
+      <RouterProvider future={{ v7_startTransition: true }} router={router} />
     </div>
   );
 };

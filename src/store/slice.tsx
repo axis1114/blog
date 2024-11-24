@@ -8,9 +8,6 @@ interface State {
         userInfo: userInfoType | null;
     };
     isInitialized: boolean;
-    theme: {
-        isDarkMode: boolean;
-    };
 }
 
 const initialState: State = {
@@ -19,9 +16,6 @@ const initialState: State = {
         userInfo: null,
     },
     isInitialized: false,
-    theme: {
-        isDarkMode: false,
-    },
 };
 
 const slice = createSlice({
@@ -49,13 +43,6 @@ const slice = createSlice({
                 const decryptedData = decryptData(storedData);
                 state.user = decryptedData;
             }
-
-            // 初始化主题设置
-            const storedTheme = localStorage.getItem("theme");
-            if (storedTheme) {
-                state.theme = JSON.parse(storedTheme);
-            }
-
             state.isInitialized = true;
         },
         // 更新 token
@@ -70,11 +57,6 @@ const slice = createSlice({
             state.user.userInfo = action.payload;
             localStorage.setItem("userInfo", encryptData(state.user));
         },
-        // 切换主题
-        toggleTheme: (state) => {
-            state.theme.isDarkMode = !state.theme.isDarkMode;
-            localStorage.setItem("theme", JSON.stringify(state.theme));
-        },
     },
 });
 
@@ -84,7 +66,6 @@ export const {
     initializeFromStorage,
     updateUserInfo,
     updateToken,
-    toggleTheme,
 } = slice.actions;
 
 export default slice.reducer;

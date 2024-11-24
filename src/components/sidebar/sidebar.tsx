@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { Layout, Menu, theme } from 'antd';
+import { Layout, Menu,  } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     MenuFoldOutlined,
@@ -10,8 +10,7 @@ import {
     FileOutlined,
     PictureOutlined,
 } from '@ant-design/icons';
-import { RootState } from '@/store';
-import { useSelector } from 'react-redux';
+
 const { Sider } = Layout;
 
 interface MenuItem {
@@ -25,7 +24,6 @@ export const Sidebar: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const { isDarkMode } = useSelector((state: RootState) => state.web.theme);
 
     const getMenuItems = (): MenuItem[] => {
         return [
@@ -66,15 +64,15 @@ export const Sidebar: React.FC = () => {
             trigger={null}
             collapsible
             collapsed={collapsed}
-            theme={isDarkMode ? 'dark' : 'light'}
+            theme="light"
             style={{
                 height: 'calc(100vh - 64px)',
                 position: 'sticky',
                 top: 64,
                 zIndex: 100,
                 borderRadius: 0,
-                borderRight: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
-                backgroundColor: isDarkMode ? '#001529' : '#fff',
+                borderRight: '2px solid #f0f0f0',
+                backgroundColor: '#fff',
             }}
             width={200}
         >
@@ -83,8 +81,8 @@ export const Sidebar: React.FC = () => {
                     padding: '12px',
                     textAlign: 'right',
                     cursor: 'pointer',
-                    borderBottom: `1px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
-                    backgroundColor: isDarkMode ? '#002140' : '#fafafa',
+                    borderBottom: '1px solid #f0f0f0',
+                    backgroundColor: '#fafafa',
                     transition: 'all 0.3s',
                     display: 'flex',
                     alignItems: 'center',
@@ -100,7 +98,7 @@ export const Sidebar: React.FC = () => {
             </div>
 
             <Menu
-                theme={isDarkMode ? 'dark' : 'light'}
+                theme="light"
                 mode="inline"
                 defaultSelectedKeys={[location.pathname]}
                 items={getMenuItems()}

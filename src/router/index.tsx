@@ -9,7 +9,8 @@ import { AdminLogin } from "@/components/login/login";
 import { AuthGuard } from "@/components/authguard/authguard";
 import { AdminArticle } from "@/view/backend/artilce";
 import { AdminImage } from "@/view/backend/image";
-
+import { ArticleDetail } from "@/components/detail/detail";
+import { AdminUser } from "@/view/backend/user";
 type BaseRouteType = {
   meta?: {
     name?: string;
@@ -29,7 +30,7 @@ export const routerObj: RouteType[] = [
   {
     path: "/",
     element: <WebIndex />,
-    children: [{ path: "", element: <WebHome /> }],
+    children: [{ path: "", element: <WebHome /> }, { path: "article/:id", element: <ArticleDetail /> }],
   },
   {
     path: "/login",
@@ -46,6 +47,7 @@ export const routerObj: RouteType[] = [
       { path: "", element: <AdminHome /> },
       { path: "articles", element: <AdminArticle /> },
       { path: "images", element: <AdminImage /> },
+      { path: "users", element: <AdminUser /> },
     ],
   },
 ];

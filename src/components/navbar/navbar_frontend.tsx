@@ -1,14 +1,8 @@
-﻿import { Layout, Menu, Switch } from 'antd';
-import { BulbOutlined } from '@ant-design/icons';
-import { useSelector, useDispatch } from 'react-redux';
-import { toggleTheme } from '@/store/slice';
+﻿import { Layout, Menu } from 'antd';
 
 const { Header } = Layout;
 
 export const NavbarFrontend = () => {
-    const dispatch = useDispatch();
-    const isDarkMode = useSelector((state: any) => state.web.theme.isDarkMode);
-
     const navItems = [
         { label: '首页', key: '/', path: '/' },
         { label: '项目', key: '/projects', path: '/projects' },
@@ -32,8 +26,8 @@ export const NavbarFrontend = () => {
                 width: '100%',
                 zIndex: 100,
                 padding: '0 24px',
-                backgroundColor: isDarkMode ? '#1f1f1f' : '#fafafa',
-                borderBottom: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
+                backgroundColor: '#fafafa',
+                borderBottom: '2px solid #f0f0f0',
                 height: '100px',
             }}
         >
@@ -47,7 +41,7 @@ export const NavbarFrontend = () => {
                 <div style={{
                     fontSize: '30px',
                     fontWeight: '500',
-                    color: isDarkMode ? '#e6e6e6' : '#262626',
+                    color: '#262626',
                 }}>
                     <a href="/" style={{ color: 'inherit' }}>
                         NSXZ 溺水寻舟的博客
@@ -64,18 +58,7 @@ export const NavbarFrontend = () => {
                             backgroundColor: 'transparent',
                             fontSize: '18px',
                         }}
-                        theme={isDarkMode ? 'dark' : 'light'}
-                    />
-
-                    <Switch
-                        checkedChildren={<BulbOutlined />}
-                        unCheckedChildren={<BulbOutlined />}
-                        checked={isDarkMode}
-                        onChange={() => dispatch(toggleTheme())}
-                        style={{
-                            marginLeft: '16px',
-                            scale: '0.9'
-                        }}
+                        theme="light"
                     />
                 </div>
             </div>

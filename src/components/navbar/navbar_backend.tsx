@@ -1,7 +1,7 @@
-﻿import { Layout, Switch, Button } from 'antd';
-import { BulbOutlined, LogoutOutlined, HomeOutlined } from '@ant-design/icons';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout, toggleTheme } from '@/store/slice';
+﻿import { Layout, Button } from 'antd';
+import { LogoutOutlined, HomeOutlined } from '@ant-design/icons';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/store/slice';
 import { useNavigate } from 'react-router-dom';
 
 const { Header } = Layout;
@@ -9,7 +9,6 @@ const { Header } = Layout;
 export const NavbarBackend = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const isDarkMode = useSelector((state: any) => state.web.theme.isDarkMode);
 
     const handleLogout = () => {
         dispatch(logout());
@@ -23,8 +22,8 @@ export const NavbarBackend = () => {
                 width: '100%',
                 zIndex: 100,
                 padding: '0 24px',
-                backgroundColor: isDarkMode ? '#001529' : '#fff',
-                borderBottom: `2px solid ${isDarkMode ? '#303030' : '#f0f0f0'}`,
+                backgroundColor: '#fff',
+                borderBottom: '2px solid #f0f0f0',
                 height: '64px',
             }}
         >
@@ -38,7 +37,7 @@ export const NavbarBackend = () => {
                 <div style={{
                     fontSize: '20px',
                     fontWeight: '500',
-                    color: isDarkMode ? '#fff' : '#001529',
+                    color: '#001529',
                 }}>
                     <a href="/admin" style={{ color: 'inherit' }}>
                         NSXZ 后台管理
@@ -51,7 +50,7 @@ export const NavbarBackend = () => {
                         icon={<HomeOutlined />}
                         onClick={() => navigate('/')}
                         style={{
-                            color: isDarkMode ? '#fff' : '#001529',
+                            color: '#001529',
                             marginRight: '16px',
                         }}
                     >
@@ -62,21 +61,12 @@ export const NavbarBackend = () => {
                         icon={<LogoutOutlined />}
                         onClick={handleLogout}
                         style={{
-                            color: isDarkMode ? '#fff' : '#001529',
+                            color: '#001529',
                             marginRight: '16px',
                         }}
                     >
                         注销
                     </Button>
-                    <Switch
-                        checkedChildren={<BulbOutlined />}
-                        unCheckedChildren={<BulbOutlined />}
-                        checked={isDarkMode}
-                        onChange={() => dispatch(toggleTheme())}
-                        style={{
-                            marginLeft: '16px',
-                        }}
-                    />
                 </div>
             </div>
         </Header>
