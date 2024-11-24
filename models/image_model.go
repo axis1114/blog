@@ -41,7 +41,7 @@ type UploadResponse struct {
 	Hash      string `json:"hash,omitempty"`
 }
 
-// validateImage 新增图片验证函数
+// validateImage 图片验证函数
 func (im *ImageModel) validateImage(file *multipart.FileHeader) error {
 	// 验证文件格式
 	nameList := strings.Split(file.Filename, ".")
@@ -102,7 +102,7 @@ func (im *ImageModel) Upload(file *multipart.FileHeader) (res UploadResponse) {
 	}
 }
 
-// 新增的辅助方法
+// readFileContent 读取文件内容
 func (im *ImageModel) readFileContent(file *multipart.FileHeader) ([]byte, error) {
 	fileObj, err := file.Open()
 	if err != nil {
@@ -114,6 +114,7 @@ func (im *ImageModel) readFileContent(file *multipart.FileHeader) ([]byte, error
 	return io.ReadAll(fileObj)
 }
 
+// checkDuplicate 检查重复文件
 func (im *ImageModel) checkDuplicate(hash string) (UploadResponse, bool) {
 	var existImage ImageModel
 	if err := global.DB.Where("hash = ?", hash).First(&existImage).Error; err == nil {
@@ -127,6 +128,7 @@ func (im *ImageModel) checkDuplicate(hash string) (UploadResponse, bool) {
 	return UploadResponse{}, false
 }
 
+// processUpload 处理文件上传
 func (im *ImageModel) processUpload(file *multipart.FileHeader, data []byte) (string, string, error) {
 	fileName := file.Filename
 	basePath := global.Config.Upload.Path
@@ -150,6 +152,7 @@ func (im *ImageModel) processUpload(file *multipart.FileHeader, data []byte) (st
 	return filePath, fileType, nil
 }
 
+// saveImageRecord 保存图片记录
 func (im *ImageModel) saveImageRecord(file *multipart.FileHeader, filePath, fileType, hash string) error {
 	im.Hash = hash
 	im.Path = filePath

@@ -29,7 +29,6 @@ func (a *Article) ArticleList(c *gin.Context) {
 	}
 
 	articles, err := models.NewArticleService().SearchArticles(req.SearchParams)
-	global.Log.Info("articles", zap.Any("articles", articles.Articles))
 	if err != nil {
 		global.Log.Error("搜索文章失败", zap.Error(err))
 		res.Fail(c, res.CodeInternalError)

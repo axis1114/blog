@@ -24,9 +24,6 @@ type CommentModel struct {
 	ArticleID       string          `json:"article_id" gorm:"index:idx_parent_article"`
 	UserID          uint            `json:"user_id"`
 	User            UserModel       `json:"user" gorm:"foreignKey:UserID"`
-	Status          CommentStatus   `json:"status"`
-	IPAddress       string          `json:"ip_address"`
-	UserAgent       string          `json:"user_agent"`
 }
 
 type CommentRequest struct {
@@ -34,14 +31,7 @@ type CommentRequest struct {
 	SortBy string `json:"sort_by" form:"sort_by" binding:"omitempty,oneof=created_at digg_count comment_count"`
 }
 
-type CommentStatus int
-
 const (
-	CommentStatusNormal CommentStatus = iota + 1
-	CommentStatusPending
-	CommentStatusRejected
-	CommentStatusDeleted
-
 	CommentCacheExpiration = 5 * time.Minute
 	CommentCacheCleanup    = 10 * time.Minute
 	CommentLimitPerMinute  = 3
@@ -68,7 +58,7 @@ func (req *CommentRequest) getOffset() int {
 }
 
 func GetArticleComments(articleID string, req CommentRequest) ([]*CommentModel, int64, error) {
-	cacheKey := fmt.Sprintf("article_comments:%s:%d:%d", articleID, req.Page, req.PageSize)
+	cacheKey := fmt.Sprintf("article_comments:%s", articleID)
 
 	if comments, ok := getFromCache(cacheKey); ok {
 		return comments, 0, nil
@@ -76,7 +66,7 @@ func GetArticleComments(articleID string, req CommentRequest) ([]*CommentModel, 
 
 	query := global.DB.Model(&CommentModel{}).
 		Preload("User").
-		Where("article_id = ? AND parent_comment_id IS NULL AND status = ?", articleID, CommentStatusNormal)
+		Where("article_id = ? AND parent_comment_id IS NULL", articleID)
 
 	comments, total, err := executeCommentQuery(query, req)
 	if err != nil {
@@ -122,6 +112,11 @@ func GetAllSubComments(commentID uint) ([]CommentModel, error) {
 
 func CreateComment(comment *CommentModel) error {
 	if err := validateAndFilterComment(comment); err != nil {
+		return err
+	}
+
+	err := canUserComment(comment.UserID)
+	if err != nil {
 		return err
 	}
 
@@ -240,14 +235,6 @@ func canUserComment(userID uint) error {
 
 var commentCache *cache.Cache
 var sensitiveFilter *sensitive.Filter
-
-func init() {
-	// 创建一个默认过期时间为5分钟，清理间隔为10分钟的缓存
-	commentCache = cache.New(5*time.Minute, 10*time.Minute)
-	sensitiveFilter = sensitive.New()
-	// 可以添加自定义敏感词
-	//sensitiveFilter.LoadWordDict()
-}
 
 func validateAndFilterComment(comment *CommentModel) error {
 	if err := validateComment(comment); err != nil {

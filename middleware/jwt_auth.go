@@ -15,7 +15,6 @@ import (
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.Request.Header.Get("Authorization")
-		global.Log.Info("tokenString", zap.String("tokenString", tokenString))
 		// 检查 Token 是否存在并去除 "Bearer " 前缀
 		if len(tokenString) < 7 || tokenString[:7] != "Bearer " {
 			res.FailWithCode(c, http.StatusUnauthorized, res.CodeUnauthorized)

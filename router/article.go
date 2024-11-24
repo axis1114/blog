@@ -11,6 +11,6 @@ func (router RouterGroup) ArticleRouter() {
 	articleRouter.GET("/:id", articleApi.ArticleDetail)
 	articleRouter.POST("", middleware.JwtAdmin(), articleApi.ArticleCreate)
 	articleRouter.GET("list", articleApi.ArticleList)
-	articleRouter.DELETE("/:id", middleware.JwtAdmin(), articleApi.ArticleDelete)
+	articleRouter.POST("delete", middleware.JwtAdmin(), articleApi.ArticleDelete)
 	articleRouter.PUT("", middleware.JwtAdmin(), articleApi.ArticleUpdate)
 }

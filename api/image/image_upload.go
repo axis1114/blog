@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"mime/multipart"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -75,9 +77,17 @@ func processFileUpload(c *gin.Context, file *multipart.FileHeader) models.Upload
 		return serviceRes
 	}
 
-	if err := c.SaveUploadedFile(file, serviceRes.FileName); err != nil {
+	// 提取纯文件名
+	fileName := serviceRes.FileName
+	fileName = filepath.Base(strings.TrimPrefix(fileName, "/")) // 移除路径前缀，只保留文件名
+
+	// 使用 filepath.Join 来正确拼接路径
+	fullPath := filepath.Join(global.Config.Upload.Path, fileName)
+
+	if err := c.SaveUploadedFile(file, fullPath); err != nil {
 		global.Log.Error("保存上传文件失败",
 			zap.String("filename", file.Filename),
+			zap.String("fullPath", fullPath),
 			zap.Error(err))
 		return models.UploadResponse{
 			IsSuccess: false,

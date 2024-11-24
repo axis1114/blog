@@ -13,36 +13,27 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/refresh"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-)
-
-// ArticleStatus 文章状态
-type ArticleStatus string
-
-const (
-	ArticleStatusDraft     ArticleStatus = "draft"
-	ArticleStatusPublished ArticleStatus = "published"
-	ArticleStatusDeleted   ArticleStatus = "deleted"
+	"golang.org/x/sync/errgroup"
 )
 
 // Article 文章模型
 type Article struct {
-	ID            string        `json:"id"`
-	CreatedAt     time.Time     `json:"created_at"`     // 创建时间
-	UpdatedAt     time.Time     `json:"updated_at"`     // 更新时间
-	Title         string        `json:"title"`          // 文章标题
-	Abstract      string        `json:"abstract"`       // 文章简介
-	Content       string        `json:"content"`        // 文章内容
-	LookCount     uint          `json:"look_count"`     // 浏览量
-	CommentCount  uint          `json:"comment_count"`  // 评论量
-	DiggCount     uint          `json:"digg_count"`     // 点赞量
-	CollectsCount uint          `json:"collects_count"` // 收藏量
-	UserID        uint          `json:"user_id"`        // 用户id
-	UserName      string        `json:"user_name"`      // 用户昵称
-	Category      string        `json:"category"`       // 文章分类
-	CoverID       uint          `json:"cover_id"`       // 封面id
-	CoverURL      string        `json:"cover_url"`      // 封面
-	Version       int64         `json:"version"`        // 版本号
-	Status        ArticleStatus `json:"status"`         // 文章状态
+	ID            string    `json:"id"`
+	CreatedAt     time.Time `json:"created_at"`     // 创建时间
+	UpdatedAt     time.Time `json:"updated_at"`     // 更新时间
+	Title         string    `json:"title"`          // 文章标题
+	Abstract      string    `json:"abstract"`       // 文章简介
+	Content       string    `json:"content"`        // 文章内容
+	LookCount     uint      `json:"look_count"`     // 浏览量
+	CommentCount  uint      `json:"comment_count"`  // 评论量
+	DiggCount     uint      `json:"digg_count"`     // 点赞量
+	CollectsCount uint      `json:"collects_count"` // 收藏量
+	UserID        uint      `json:"user_id"`        // 用户id
+	UserName      string    `json:"user_name"`      // 用户昵称
+	Category      string    `json:"category"`       // 文章分类
+	CoverID       uint      `json:"cover_id"`       // 封面id
+	CoverURL      string    `json:"cover_url"`      // 封面
+	Version       int64     `json:"version"`        // 版本号
 }
 
 const (
@@ -121,7 +112,6 @@ func (s *ArticleService) CreateIndex() error {
 		"cover_id":       types.NewIntegerNumberProperty(),
 		"cover_url":      types.NewKeywordProperty(),
 		"version":        types.NewLongNumberProperty(),
-		"status":         types.NewKeywordProperty(),
 	}
 
 	_, err = global.Es.Indices.Create(articleIndex).
@@ -176,10 +166,6 @@ func (s *ArticleService) CreateArticle(article *Article) error {
 	article.UpdatedAt = time.Now()
 	article.Version = 1
 
-	if article.Status == "" {
-		article.Status = ArticleStatusDraft
-	}
-
 	_, err = global.Es.Index(articleIndex).
 		Id(article.ID).
 		Document(article).
@@ -201,7 +187,7 @@ func (s *ArticleService) GetArticle(id string) (*Article, error) {
 
 	// 1. 只有已发布的文章才查询缓存
 	article, err := s.getCache(id)
-	if err == nil && article.Status == ArticleStatusPublished {
+	if err == nil {
 		// 更新访问计数
 		go s.incrementLookCount(id)
 		return article, nil
@@ -219,7 +205,7 @@ func (s *ArticleService) GetArticle(id string) (*Article, error) {
 	}
 
 	// 3. 只缓存已发布的热门文章（比如阅读量超过100的）
-	if result.Status == ArticleStatusPublished && result.LookCount > 100 {
+	if result.LookCount > 100 {
 		if err := s.setCache(id, &result); err != nil {
 			global.Log.Warn("设置缓存失败", zap.Error(err))
 		}
@@ -253,6 +239,7 @@ func (s *ArticleService) UpdateArticle(article *Article) error {
 func (s *ArticleService) DeleteArticles(ids []string) error {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
 
 	for i := 0; i < len(ids); i += batchSize {
 		end := i + batchSize
@@ -260,22 +247,38 @@ func (s *ArticleService) DeleteArticles(ids []string) error {
 			end = len(ids)
 		}
 
-		bulkRequest := global.Es.Bulk()
-		for _, id := range ids[i:end] {
-			op := types.DeleteOperation{Id_: &id}
-			if err := bulkRequest.DeleteOp(op); err != nil {
-				return fmt.Errorf("批量删除操作构建失: %w", err)
+		batch := ids[i:end]
+
+		// 构建批量删除请求
+		bulkRequest := global.Es.Bulk().Index(articleIndex)
+		for _, id := range batch {
+			bulkRequest.DeleteOp(types.DeleteOperation{Id_: &id})
+		}
+
+		// 执行批量删除请求
+		g.Go(func() error {
+			resp, err := bulkRequest.Refresh(refresh.True).Do(ctx)
+			if err != nil {
+				return fmt.Errorf("批量删除文章失败: %w", err)
+			}
+
+			if resp.Errors {
+				return fmt.Errorf("批量删除文章时发生错误")
 			}
 
 			// 删除缓存
-			s.deleteCache(id)
-		}
-
-		if _, err := bulkRequest.Refresh(refresh.True).Do(ctx); err != nil {
-			return fmt.Errorf("批量删除执行失败: %w", err)
-		}
+			for _, id := range batch {
+				if err := s.deleteCache(id); err != nil {
+					global.Log.Error("删除缓存失败",
+						zap.String("id", id),
+						zap.Error(err))
+				}
+			}
+			return nil
+		})
 	}
-	return nil
+
+	return g.Wait()
 }
 
 // SearchArticles 搜索文章
@@ -298,15 +301,11 @@ func (s *ArticleService) SearchArticles(params SearchParams) (*SearchResult, err
 		boolQuery.Must = append(boolQuery.Must, types.Query{Term: map[string]types.TermQuery{"category": *termQuery}})
 	}
 
-	// 只搜索已发布的文章
-	termQuery := types.NewTermQuery()
-	termQuery.Value = ArticleStatusDraft
-	boolQuery.Must = append(boolQuery.Must, types.Query{Term: map[string]types.TermQuery{"status": *termQuery}})
-
+	from := (params.PageInfo.Page - 1) * params.PageInfo.PageSize
 	searchRequest := global.Es.Search().
 		Index(articleIndex).
 		Query(&types.Query{Bool: boolQuery}).
-		From(params.PageInfo.Page).
+		From(from).
 		Size(params.PageInfo.PageSize)
 
 	// 添加排序
@@ -332,7 +331,6 @@ func (s *ArticleService) SearchArticles(params SearchParams) (*SearchResult, err
 		}
 		articles = append(articles, article)
 	}
-
 	return &SearchResult{
 		Articles: articles,
 		Total:    resp.Hits.Total.Value,
