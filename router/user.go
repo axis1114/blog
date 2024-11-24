@@ -13,4 +13,5 @@ func (router RouterGroup) UserRouter() {
 	userRouter.POST("login", userApi.UserLogin)
 	userRouter.POST("logout", middleware.JwtAuth(), userApi.UserLogout)
 	userRouter.GET("list", middleware.JwtAdmin(), userApi.UserList)
+	userRouter.DELETE(":id", middleware.JwtAdmin(), userApi.UserDelete)
 }

@@ -90,13 +90,30 @@ func (u *UserModel) UpdatePassword(newPassword string) error {
 func (u *UserModel) UpdateProfile(updates map[string]interface{}) error {
 	// 过滤敏感字段
 	delete(updates, "password")
-	delete(updates, "role")
 	delete(updates, "account")
-
 	return global.DB.Model(u).Updates(updates).Error
 }
 
 // UpdateToken 更新用户token
 func (u *UserModel) UpdateToken(token string) error {
 	return global.DB.Model(u).Update("token", token).Error
+}
+
+// Delete 删除用户
+func (u *UserModel) Delete() error {
+	// 创建事务
+	tx := global.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// 执行删除操作
+	if err := tx.Delete(u).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("删除用户失败: %w", err)
+	}
+
+	return tx.Commit().Error
 }

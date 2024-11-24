@@ -43,5 +43,5 @@ func (u *User) UserCreate(c *gin.Context) {
 		res.Fail(c, res.CodeInternalError)
 		return
 	}
-	res.Success(c, nil)
+	res.Success(c, account)
 }

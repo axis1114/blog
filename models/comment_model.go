@@ -1,6 +1,8 @@
 package models
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,7 +12,7 @@ import (
 
 	"github.com/importcjj/sensitive"
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/patrickmn/go-cache"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -32,6 +34,8 @@ type CommentRequest struct {
 }
 
 const (
+	CommentCacheKeyPrefix  = "comment:"
+	CommentLimitKeyPrefix  = "comment_limit:"
 	CommentCacheExpiration = 5 * time.Minute
 	CommentCacheCleanup    = 10 * time.Minute
 	CommentLimitPerMinute  = 3
@@ -44,26 +48,31 @@ var (
 	ErrParentCommentNotExist = errors.New("父评论不存在")
 )
 
-func (req *CommentRequest) normalize() {
-	if req.Page <= 0 {
-		req.Page = 1
-	}
-	if req.PageSize <= 0 {
-		req.PageSize = 10
-	}
-}
+// 在包级别定义变量
+var (
+	sensitiveFilter *sensitive.Filter
+)
 
-func (req *CommentRequest) getOffset() int {
-	return (req.Page - 1) * req.PageSize
+func init() {
+	// 保留敏感词过滤器的初始化
+	sensitiveFilter = sensitive.New()
+	// 可以从配置文件加载敏感词
+	// sensitiveFilter.LoadWordDict("path/to/sensitive_words.txt")
+
+	// 如果没有敏感词文件，至少添加一些基本的敏感词
+	//sensitiveFilter.AddWord("敏感词1", "敏感词2")
 }
 
 func GetArticleComments(articleID string, req CommentRequest) ([]*CommentModel, int64, error) {
-	cacheKey := fmt.Sprintf("article_comments:%s", articleID)
+	cacheKey := fmt.Sprintf("%s:article:%s", CommentCacheKeyPrefix, articleID)
 
-	if comments, ok := getFromCache(cacheKey); ok {
-		return comments, 0, nil
+	// 尝试从Redis获取缓存
+	comments, err := getCommentsFromRedis(cacheKey)
+	if err == nil {
+		return comments, int64(len(comments)), nil
 	}
 
+	// 缓存未命中，从数据库查询
 	query := global.DB.Model(&CommentModel{}).
 		Preload("User").
 		Where("article_id = ? AND parent_comment_id IS NULL", articleID)
@@ -73,9 +82,12 @@ func GetArticleComments(articleID string, req CommentRequest) ([]*CommentModel, 
 		return nil, 0, err
 	}
 
-	// 构建评论树并缓存
+	// 构建评论树并缓存到Redis
 	result := buildCommentTree(comments)
-	commentCache.Set(cacheKey, result, CommentCacheExpiration)
+	if err := cacheCommentsToRedis(cacheKey, result); err != nil {
+		global.Log.Error("缓存评论失败", zap.Error(err))
+	}
+
 	return result, total, nil
 }
 
@@ -120,12 +132,21 @@ func CreateComment(comment *CommentModel) error {
 		return err
 	}
 
-	return global.DB.Transaction(func(tx *gorm.DB) error {
+	err = global.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(comment).Error; err != nil {
 			return err
 		}
 		return updateParentCommentCount(tx, comment.ParentCommentID)
 	})
+
+	if err == nil {
+		// 创建评论成功后清除缓存
+		if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
+			global.Log.Error("清除评论缓存失败", zap.Error(err))
+		}
+	}
+
+	return err
 }
 
 func validateComment(comment *CommentModel) error {
@@ -156,7 +177,14 @@ func existsComment(commentID uint) (bool, error) {
 }
 
 func filterContent(content string) (string, error) {
+	if sensitiveFilter == nil {
+		// 如果过滤器未初始化，至少返回清理后的HTML
+		return bluemonday.UGCPolicy().Sanitize(content), nil
+	}
+
+	// 清理HTML
 	content = bluemonday.UGCPolicy().Sanitize(content)
+	// 过滤敏感词
 	content = sensitiveFilter.Replace(content, '*')
 	return content, nil
 }
@@ -170,11 +198,15 @@ func UpdateCommentCount(commentID uint) error {
 }
 
 func DeleteComment(commentID uint) error {
-	return global.DB.Transaction(func(tx *gorm.DB) error {
+	var comment CommentModel
+	if err := global.DB.First(&comment, commentID).Error; err != nil {
+		return err
+	}
+
+	err := global.DB.Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 		updates := map[string]interface{}{"deleted_at": now}
 
-		// 同时删除主评论和子评论
 		if err := tx.Model(&CommentModel{}).
 			Where("id = ? OR parent_comment_id = ?", commentID, commentID).
 			Updates(updates).Error; err != nil {
@@ -182,6 +214,15 @@ func DeleteComment(commentID uint) error {
 		}
 		return nil
 	})
+
+	if err == nil {
+		// 删除评论成功后清除缓存
+		if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
+			global.Log.Error("清除评论缓存失败", zap.Error(err))
+		}
+	}
+
+	return err
 }
 
 func GetCommentsByUserID(userID uint, req CommentRequest) ([]*CommentModel, int64, error) {
@@ -217,24 +258,26 @@ func GetCommentsByUserID(userID uint, req CommentRequest) ([]*CommentModel, int6
 }
 
 func canUserComment(userID uint) error {
-	key := fmt.Sprintf("comment_limit:%d", userID)
-	count, found := commentCache.Get(key)
+	ctx := context.Background()
+	key := fmt.Sprintf("%s%d", CommentLimitKeyPrefix, userID)
 
-	if !found {
-		commentCache.Set(key, 1, time.Minute)
-		return nil
+	// 使用 Redis INCR 命令增加计数
+	count, err := global.Redis.Incr(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("检查评论限制失败: %w", err)
 	}
 
-	if count.(int) >= CommentLimitPerMinute {
+	// 如果是第一次评论，设置过期时间
+	if count == 1 {
+		global.Redis.Expire(ctx, key, time.Minute)
+	}
+
+	if count > CommentLimitPerMinute {
 		return errors.New("评论太频繁，请稍后再试")
 	}
 
-	commentCache.Set(key, count.(int)+1, time.Minute)
 	return nil
 }
-
-var commentCache *cache.Cache
-var sensitiveFilter *sensitive.Filter
 
 func validateAndFilterComment(comment *CommentModel) error {
 	if err := validateComment(comment); err != nil {
@@ -258,15 +301,6 @@ func updateParentCommentCount(tx *gorm.DB, parentCommentID *uint) error {
 	return nil
 }
 
-func getFromCache(cacheKey string) ([]*CommentModel, bool) {
-	if cached, found := commentCache.Get(cacheKey); found {
-		if cachedComments, ok := cached.([]*CommentModel); ok {
-			return cachedComments, true
-		}
-	}
-	return nil, false
-}
-
 func executeCommentQuery(query *gorm.DB, req CommentRequest) ([]*CommentModel, int64, error) {
 	var total int64
 	orderBy := "created_at DESC"
@@ -284,4 +318,38 @@ func executeCommentQuery(query *gorm.DB, req CommentRequest) ([]*CommentModel, i
 	}
 
 	return comments, total, nil
+}
+
+// 从Redis获取评论缓存
+func getCommentsFromRedis(key string) ([]*CommentModel, error) {
+	ctx := context.Background()
+	data, err := global.Redis.Get(ctx, key).Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	var comments []*CommentModel
+	if err := json.Unmarshal(data, &comments); err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}
+
+// 将评论缓存到Redis
+func cacheCommentsToRedis(key string, comments []*CommentModel) error {
+	ctx := context.Background()
+	data, err := json.Marshal(comments)
+	if err != nil {
+		return err
+	}
+
+	return global.Redis.Set(ctx, key, data, CommentCacheExpiration).Err()
+}
+
+// 清除文章评论缓存
+func clearArticleCommentsCache(articleID string) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("%s:article:%s", CommentCacheKeyPrefix, articleID)
+	return global.Redis.Del(ctx, key).Err()
 }
