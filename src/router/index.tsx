@@ -11,6 +11,7 @@ import { AdminArticle } from "@/view/backend/artilce";
 import { AdminImage } from "@/view/backend/image";
 import { ArticleDetail } from "@/components/detail/detail";
 import { AdminUser } from "@/view/backend/user";
+import { AdminComment } from "@/view/backend/comment";
 type BaseRouteType = {
   meta?: {
     name?: string;
@@ -46,6 +47,7 @@ export const routerObj: RouteType[] = [
     children: [
       { path: "", element: <AdminHome /> },
       { path: "articles", element: <AdminArticle /> },
+      { path: "comments", element: <AdminComment /> },
       { path: "images", element: <AdminImage /> },
       { path: "users", element: <AdminUser /> },
     ],

@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { Layout, Menu,  } from 'antd';
+import { Layout, Menu, } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     MenuFoldOutlined,
@@ -9,6 +9,7 @@ import {
     UserOutlined,
     FileOutlined,
     PictureOutlined,
+    CommentOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -41,6 +42,11 @@ export const Sidebar: React.FC = () => {
                 key: '/admin/articles',
                 icon: <FileOutlined />,
                 label: '文章管理'
+            },
+            {
+                key: '/admin/comments',
+                icon: <CommentOutlined />,
+                label: '评论管理'
             },
             {
                 key: '/admin/images',

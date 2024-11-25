@@ -1,4 +1,4 @@
-﻿import { baseResponse, listDataType, paramsType, useAxios } from ".";
+﻿import { baseResponse, paramsType, useAxios } from ".";
 import { userInfoType } from "./user";
 
 export interface commentType {
@@ -22,9 +22,9 @@ export interface commentListParamsType extends paramsType {
 }
 
 export function commentList(
-  params: commentListParamsType
-): Promise<baseResponse<listDataType<commentType>>> {
-  return useAxios.get("/api/comment/list", { params: { ...params } });
+  req: commentListParamsType
+): Promise<baseResponse<commentType[]>> {
+  return useAxios.post("/api/comment/list", req);
 }
 
 export interface commentCreateType {
@@ -35,7 +35,7 @@ export interface commentCreateType {
 
 export function commentCreate(
   req: commentCreateType
-): Promise<baseResponse<listDataType<userInfoType>>> {
+): Promise<baseResponse<string>> {
   return useAxios.post("/api/comment", req);
 }
 
