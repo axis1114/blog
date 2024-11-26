@@ -84,6 +84,20 @@ export const AdminComment = () => {
         }
     }, [pagination]);
 
+    const fetchComments = useCallback(async () => {
+        if (!selectedArticleId) return;
+        try {
+            const res = await commentList({ article_id: selectedArticleId });
+            if (res.code === 2000) {
+                setComments(res.data);
+            } else {
+                message.error(res.msg);
+            }
+        } catch (error) {
+            console.error('获取评论列表失败:', error);
+        }
+    }, [selectedArticleId]);
+
     const articleListElement = useMemo(
         () => (
             <div className='px-5'>
@@ -127,12 +141,16 @@ export const AdminComment = () => {
 
 
     return (
-        <Row gutter={16}>
-            <Col span={6} className='h-[calc(100vh-64px)]' style={{ borderRight: '2px solid #e8e8e8' }}>
+        <Row gutter={16} className='h-[calc(100vh-64px)]'>
+            <Col span={6} style={{ borderRight: '2px solid #e8e8e8' }}>
                 {articleListElement}
             </Col>
-            <Col span={18}>
-                {selectedArticleId && <CommentArea comments={comments} />}
+            <Col span={18} className="h-full overflow-hidden">
+                {selectedArticleId && <CommentArea
+                    comments={comments}
+                    onCommentSuccess={fetchComments}
+                    className="h-full overflow-y-auto"
+                />}
             </Col>
         </Row>
     );

@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState } from 'react';
 import { articleList, articleType, articleParamsType, } from '../../api/article';
-import { Row, Col, List, Typography, Space, Tag, Input, Card, AutoComplete } from 'antd';
-import { EyeOutlined, LikeOutlined, MessageOutlined, SearchOutlined } from '@ant-design/icons';
+import { Row, Col, List, Typography, Space, Tag } from 'antd';
+import { EyeOutlined, LikeOutlined, MessageOutlined } from '@ant-design/icons';
+import { ArticleSearch } from '../../components/search/articlesearch';
 
 const { Title, Paragraph } = Typography;
 
@@ -23,10 +24,6 @@ export const WebHome = () => {
         sort_order: undefined,
         key: undefined
     });
-    const [categories] = useState([
-        '全部', '技术', '生活', '随笔', '前端', '后端', '数据库', '运维'
-    ]);
-    const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]);
 
     const fetchArticles = async (page = pagination.page, pageSize = pagination.page_size) => {
         setLoading(true);
@@ -60,37 +57,6 @@ export const WebHome = () => {
         fetchArticles(page, pageSize);
     };
 
-    const handleSearch = (value: string) => {
-        setPagination(prev => ({
-            ...prev,
-            page: 1,
-            keyword: value
-        }));
-        fetchArticles(1);
-    };
-
-    const handleSearchInput = async (value: string) => {
-        if (!value.trim()) {
-            setSearchSuggestions([]);
-            return;
-        }
-
-        try {
-            const params: articleParamsType = {
-                page: 1,
-                page_size: 5,
-                key: value,
-            };
-            const res = await articleList(params);
-            setSearchSuggestions(res.data.list);
-        } catch (error) {
-            console.error('获取搜索建议失败:', error);
-        }
-    };
-
-    const handleSelect = (value: string, option: any) => {
-        window.location.href = `/article/${option.key}`;
-    };
 
     useEffect(() => {
         fetchArticles();
@@ -253,50 +219,7 @@ export const WebHome = () => {
             </Col>
 
             <Col span={6} style={{ backgroundColor: '#ffffff', padding: '0px' }}>
-                <div style={{ padding: '20px' }}>
-                    <AutoComplete
-                        style={{ width: '100%' }}
-                        onSearch={handleSearchInput}
-                        onSelect={handleSelect}
-                        dropdownStyle={{
-                            maxHeight: '400px',
-                            overflow: 'auto',
-                            padding: '12px',
-                            borderRadius: '0',
-                            marginTop: '6px',
-                            border: '1px solid #d9d9d9',
-                            borderTop: '1px solid #d9d9d9'
-                        }}
-                        options={searchSuggestions.map(article => ({
-                            label: (
-                                <div style={{
-                                    padding: '8px',
-                                }}>
-                                    <div style={{
-                                        fontSize: '15px',
-                                        marginBottom: '4px',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap'
-                                    }}>
-                                        {article.title}
-                                    </div>
-                                </div>
-                            ),
-                            value: article.title,
-                            key: article.id
-                        }))}
-                    >
-                        <Input.Search
-                            placeholder="搜索文章..."
-                            allowClear
-                            enterButton={<SearchOutlined />}
-                            size="large"
-                            onSearch={handleSearch}
-                            className="square-search-input"
-                        />
-                    </AutoComplete>
-                </div>
+                <ArticleSearch />
             </Col>
         </Row>
     );

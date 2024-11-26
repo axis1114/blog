@@ -33,7 +33,6 @@ const slice = createSlice({
             state.user.isLogin = false;
             state.user.userInfo = null;
             localStorage.removeItem("userInfo");
-            window.location.href = "/";
         },
         // 初始化用户状态和主题
         initializeFromStorage: (state) => {

@@ -1,6 +1,6 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Skeleton, Empty } from 'antd';
+import { Skeleton, Empty, Statistic } from 'antd';
 import { message } from 'antd';
 import { articleDetail, articleType } from '@/api/article';
 import MdEditor from 'react-markdown-editor-lite';
@@ -9,6 +9,9 @@ import 'react-markdown-editor-lite/lib/index.css';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css';
 import { Row, Col } from 'antd';
+import { commentType, commentList } from '@/api/comment';
+import { CommentArea } from '../comment/comment';
+import { ArticleSearch } from '../search/articlesearch';
 
 // 配置 markdown 解析器
 const mdParser = new MarkdownIt({
@@ -24,8 +27,41 @@ const mdParser = new MarkdownIt({
     }
 });
 
-// Markdown查看器组件
+// 修改：提取标题并生成正确的锚点 ID
+const extractHeadings = (content: string) => {
+    const lines = content.split('\n');
+    const headings = lines
+        .filter(line => line.startsWith('#'))
+        .map(line => {
+            const level = line.match(/^#+/)?.[0].length || 0;
+            const title = line.replace(/^#+\s*/, '').trim();
+            // 生成唯一的锚点 ID
+            const key = `heading-${title
+                .toLowerCase()
+                .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+                .replace(/^-|-$/g, '')}`;
+            return {
+                key,
+                href: `#${key}`,
+                title,
+                level
+            };
+        });
+    return headings;
+};
+
+// 修改：MarkdownViewer 组件
 const MarkdownViewer = ({ content }: { content: string }) => {
+    // 修改 markdown-it 的渲染规则，为标题添加 id
+    mdParser.renderer.rules.heading_open = (tokens, idx) => {
+        const title = tokens[idx + 1].content.trim();
+        const id = `heading-${title
+            .toLowerCase()
+            .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+            .replace(/^-|-$/g, '')}`;
+        return `<h${tokens[idx].markup.length} id="${id}">`;
+    };
+
     return (
         <MdEditor
             value={content}
@@ -35,23 +71,358 @@ const MarkdownViewer = ({ content }: { content: string }) => {
             className="border-none shadow-none pl-8"
             style={{ backgroundColor: 'transparent' }}
             renderHTML={(text) => (
-                <div dangerouslySetInnerHTML={{ __html: mdParser.render(text) }} />
+                <div className="markdown-content" dangerouslySetInnerHTML={{ __html: mdParser.render(text) }} />
             )}
         />
     );
 };
 
+// 修改：TableOfContents 组件
+const TableOfContents = ({ content }: { content: string }) => {
+    const headings = extractHeadings(content);
+
+    const handleClick = (heading: { href: string }) => (e: React.MouseEvent) => {
+        e.preventDefault();
+        const targetId = heading.href.substring(1);
+        const element = document.getElementById(targetId);
+
+        if (element) {
+            const offset = 100;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - offset;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    return (
+        <div className="mt-6 bg-white border border-gray-200 w-[300px]">
+            <h3 className="px-4 py-3 text-lg font-medium border-b border-gray-200 bg-gray-50">
+                文章目录
+            </h3>
+            <nav className="px-4 py-3 max-h-[300px] overflow-y-auto">
+                {headings.map((heading) => (
+                    <a
+                        key={heading.key}
+                        href={heading.href}
+                        onClick={handleClick(heading)}
+                        className={`
+                            block py-2 text-gray-600 hover:text-blue-500 hover:bg-gray-50 
+                            transition-colors rounded-md
+                            ${heading.level === 1 ? 'text-base font-medium' : ''}
+                            ${heading.level === 2 ? 'pl-4 text-[15px]' : ''}
+                            ${heading.level === 3 ? 'pl-8 text-[14px] text-gray-500' : ''}
+                            ${heading.level === 4 ? 'pl-12 text-[13px] text-gray-500' : ''}
+                            ${heading.level === 5 ? 'pl-16 text-[13px] text-gray-500' : ''}
+                            ${heading.level === 6 ? 'pl-20 text-[13px] text-gray-500' : ''}
+                        `}
+                    >
+                        <span className="flex items-center">
+                            <span className={`
+                                inline-block w-1.5 h-1.5 rounded-full mr-2
+                                ${heading.level === 1 ? 'bg-blue-500' : ''}
+                                ${heading.level === 2 ? 'bg-blue-400' : ''}
+                                ${heading.level === 3 ? 'bg-gray-400' : ''}
+                                ${heading.level >= 4 ? 'bg-gray-300' : ''}
+                            `}></span>
+                            {heading.title}
+                        </span>
+                    </a>
+                ))}
+            </nav>
+        </div>
+    );
+};
+
+// 修改样式
+const styles = `
+/* 整体内容样式优化 */
+.markdown-content {
+    padding-bottom: 100px;
+    font-size: 18px;  // 增大基础字号
+    line-height: 2;   // 增加行高
+    color: #2c3e50;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.3px;  // 增加字间距提高可读性
+}
+
+/* 标题样式优化 */
+.markdown-content h1 {
+    font-size: 38px;  // 更大的标题
+    font-weight: 700;
+    margin: 48px 0 28px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #4f46e5;  // 更醒目的边框颜色
+    color: #1e293b;
+    background: linear-gradient(to right, #4f46e5, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.markdown-content h2 {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 40px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #6366f1;
+    color: #2563eb;
+}
+
+.markdown-content h3 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 32px 0 20px;
+    color: #3b82f6;
+}
+
+.markdown-content h4 {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 28px 0 16px;
+    color: #60a5fa;
+}
+
+/* 段落和列表样式优化 */
+.markdown-content p {
+    margin: 20px 0;
+    line-height: 2;
+    font-size: 18px;
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+    padding-left: 28px;
+    margin: 20px 0;
+    font-size: 18px;
+}
+
+.markdown-content li {
+    margin: 12px 0;
+    line-height: 1.8;
+}
+
+/* 代码块样式优化 */
+.markdown-content pre {
+    background: linear-gradient(145deg, #1e293b, #334155);
+    border-radius: 8px;
+    padding: 20px;
+    overflow: auto;
+    margin: 20px 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 16px;
+    padding: 3px 8px;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    margin: 0 2px;
+    color: #e11d48;  // 行内代码使用醒目的红色
+}
+
+.markdown-content pre code {
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+    color: #e2e8f0;  // 代码块内的代码使用浅色
+    font-size: 16px;
+}
+
+/* 引用块样式优化 */
+.markdown-content blockquote {
+    margin: 28px 0;
+    padding: 16px 28px;
+    color: #4b5563;
+    border-left: 4px solid #8b5cf6;  // 使用紫色作为强调色
+    background: linear-gradient(to right, #f3f4f6, #ffffff);
+    border-radius: 0 8px 8px 0;
+    font-size: 18px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 表格样式优化 */
+.markdown-content table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 28px 0;
+    font-size: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content table th,
+.markdown-content table td {
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.markdown-content table th {
+    background: linear-gradient(145deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 600;
+    font-size: 17px;
+}
+
+.markdown-content table tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+.markdown-content table tr:hover {
+    background-color: #f1f5f9;
+}
+
+/* 链接样式优化 */
+.markdown-content a {
+    color: #6366f1;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.markdown-content a:hover {
+    border-bottom-color: #6366f1;
+    color: #4f46e5;
+    background-color: rgba(99, 102, 241, 0.1);
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+/* 图片样式优化 */
+.markdown-content img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 24px 0;
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease;
+}
+
+.markdown-content img:hover {
+    transform: scale(1.02);
+}
+
+/* 水平线样式优化 */
+.markdown-content hr {
+    margin: 32px 0;
+    border: none;
+    height: 2px;
+    background: linear-gradient(to right, #4f46e5, #6366f1, #8b5cf6);
+    border-radius: 2px;
+}
+
+/* 目录滚动条样式优化 */
+nav::-webkit-scrollbar {
+    width: 8px;
+}
+
+nav::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+nav::-webkit-scrollbar-thumb {
+    background: linear-gradient(145deg, #3b82f6, #6366f1);
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+nav::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(145deg, #2563eb, #4f46e5);
+}
+
+/* 列表项标记样式 */
+.markdown-content ul li::marker {
+    color: #6366f1;
+}
+
+.markdown-content ol li::marker {
+    color: #6366f1;
+    font-weight: 600;
+}
+`;
+
+const ArticleHeader = ({ article }: { article: articleType }) => {
+    return (
+        <div className="border-b border-gray-200 pl-12 pr-5 border-r border-gray-200">
+            {/* 文章标题 */}
+            <h1 className="text-3xl font-bold mb-4 text-gray-900">
+                {article.title}
+            </h1>
+
+            {/* 文章信息 */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+
+                    {/* 分类标签 */}
+                    <div className="px-3 py-1 bg-blue-50 text-blue-600 text-xl">
+                        {article.category}
+                    </div>
+
+                    {/* 发布时间 */}
+                    <div className="text-xl text-gray-500">
+                        发布于{new Date(article.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="text-xl text-gray-500">
+                        更新于{new Date(article.updated_at).toLocaleDateString()}
+                    </div>
+                </div>
+
+                {/* 统计信息 */}
+                <div className="flex items-center space-x-4 text-gray-500 text-xl">
+                    <div className="flex items-center space-x-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span>{article.look_count} 阅读</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>{article.comment_count} 评论</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// 统计项组件
+const StatisticItem = ({
+    icon,
+    label,
+    value
+}: {
+    icon: React.ReactNode,
+    label: string,
+    value: number
+}) => (
+    <div className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition-colors duration-200 group cursor-pointer">
+        <div className="p-2 rounded-lg group-hover:bg-blue-50 transition-colors duration-200">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {icon}
+            </svg>
+        </div>
+        <div className="flex flex-col">
+            <span className="text-lg font-semibold">{value}</span>
+            <span className="text-sm text-gray-500 group-hover:text-blue-500">{label}</span>
+        </div>
+    </div>
+);
 
 export const ArticleDetail = () => {
     const { id } = useParams<{ id: string }>();
     const [article, setArticle] = useState<articleType | null>(null);
     const [loading, setLoading] = useState(true);
+    const [comments, setComments] = useState<commentType[]>([]);
 
-    useEffect(() => {
-        fetchArticleDetail();
-    }, [id]);
-
-    const fetchArticleDetail = async () => {
+    const fetchArticleDetail = useCallback(async () => {
         try {
             const res = await articleDetail(id as string);
             if (res.code === 2000) {
@@ -64,7 +435,36 @@ export const ArticleDetail = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+    const fetchComments = useCallback(async () => {
+        if (!id) return;
+        try {
+            const res = await commentList({ article_id: id });
+            console.log(res);
+            if (res.code === 2000) {
+                setComments(res.data);
+            } else {
+                message.error(res.msg);
+            }
+        } catch (error) {
+            console.error('获取评论列表失败:', error);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        fetchArticleDetail();
+        fetchComments();
+    }, [id, fetchComments]);
+
+    // 添加样式
+    useEffect(() => {
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = styles;
+        document.head.appendChild(styleSheet);
+        return () => {
+            document.head.removeChild(styleSheet);
+        };
+    }, []);
 
     if (loading) {
         return (
@@ -93,10 +493,19 @@ export const ArticleDetail = () => {
     return (
         <Row gutter={24}>
             <Col span={18} style={{ padding: '0px 0px 0px 12px' }}>
+                <ArticleHeader article={article} />
                 <MarkdownViewer content={article.content} />
+                <CommentArea
+                    comments={comments}
+                    onCommentSuccess={fetchComments}
+                />
             </Col>
 
-            <Col span={6} style={{ backgroundColor: '#ffffff', padding: '0px' }}>
+            <Col span={6} className="sticky top-4" style={{ height: 'fit-content' }}>
+                <div className="space-y-4 flex flex-col items-center">
+                    <ArticleSearch />
+                    {article && <TableOfContents content={article.content} />}
+                </div>
             </Col>
         </Row>
     );
