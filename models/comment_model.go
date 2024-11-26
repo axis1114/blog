@@ -63,32 +63,38 @@ func init() {
 	//sensitiveFilter.AddWord("敏感词1", "敏感词2")
 }
 
-func GetArticleComments(articleID string, req CommentRequest) ([]*CommentModel, int64, error) {
+func GetArticleComments(articleID string) ([]*CommentModel, error) {
 	cacheKey := fmt.Sprintf("%s:article:%s", CommentCacheKeyPrefix, articleID)
 
 	// 尝试从Redis获取缓存
-	comments, err := getCommentsFromRedis(cacheKey)
+	rediscomments, err := getCommentsFromRedis(cacheKey)
 	if err == nil {
-		return comments, int64(len(comments)), nil
+		return rediscomments, nil
 	}
 
-	// 缓存未命中，从数据库查询
-	query := global.DB.Model(&CommentModel{}).
+	// 缓存未命中,从数据库查询
+	var comments []*CommentModel
+	if err := global.DB.Model(&CommentModel{}).
+		Where("article_id = ?", articleID).
 		Preload("User").
-		Where("article_id = ? AND parent_comment_id IS NULL", articleID)
-
-	comments, total, err := executeCommentQuery(query, req)
-	if err != nil {
-		return nil, 0, err
+		Preload("SubComments", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC")
+		}).
+		Preload("SubComments.User").
+		Order("created_at DESC").
+		Find(&comments).Error; err != nil {
+		return nil, err
 	}
 
-	// 构建评论树并缓存到Redis
+	// 构建评论树
 	result := buildCommentTree(comments)
+
+	// 缓存到Redis
 	if err := cacheCommentsToRedis(cacheKey, result); err != nil {
 		global.Log.Error("缓存评论失败", zap.Error(err))
 	}
 
-	return result, total, nil
+	return result, nil
 }
 
 func buildCommentTree(comments []*CommentModel) []*CommentModel {
@@ -111,6 +117,19 @@ func buildCommentTree(comments []*CommentModel) []*CommentModel {
 		}
 	}
 
+	// 递归构建子评论树
+	var buildSubTree func(comments []*CommentModel)
+	buildSubTree = func(comments []*CommentModel) {
+		for _, comment := range comments {
+			if subComments, exists := commentMap[comment.ID]; exists {
+				comment.SubComments = subComments.SubComments
+				buildSubTree(comment.SubComments)
+			}
+		}
+	}
+
+	buildSubTree(rootComments)
+
 	return rootComments
 }
 
@@ -132,18 +151,39 @@ func CreateComment(comment *CommentModel) error {
 		return err
 	}
 
+	// 设置事务超时和重试逻辑
 	err = global.DB.Transaction(func(tx *gorm.DB) error {
+		// 使用 FOR UPDATE SKIP LOCKED 来避免死锁
+		if comment.ParentCommentID != nil {
+			var parentComment CommentModel
+			if err := tx.Set("gorm:query_option", "FOR UPDATE SKIP LOCKED").
+				First(&parentComment, *comment.ParentCommentID).Error; err != nil {
+				return err
+			}
+		}
+
+		// 创建评论
 		if err := tx.Create(comment).Error; err != nil {
 			return err
 		}
-		return updateParentCommentCount(tx, comment.ParentCommentID)
+
+		// 更新父评论计数
+		if comment.ParentCommentID != nil {
+			return tx.Model(&CommentModel{}).
+				Where("id = ?", *comment.ParentCommentID).
+				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
+				Error
+		}
+		return nil
 	})
 
 	if err == nil {
-		// 创建评论成功后清除缓存
-		if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
-			global.Log.Error("清除评论缓存失败", zap.Error(err))
-		}
+		// 异步清除缓存
+		go func() {
+			if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
+				global.Log.Error("清除评论缓存失败", zap.Error(err))
+			}
+		}()
 	}
 
 	return err
@@ -293,31 +333,15 @@ func validateAndFilterComment(comment *CommentModel) error {
 }
 
 func updateParentCommentCount(tx *gorm.DB, parentCommentID *uint) error {
-	if parentCommentID != nil {
-		if err := UpdateCommentCount(*parentCommentID); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func executeCommentQuery(query *gorm.DB, req CommentRequest) ([]*CommentModel, int64, error) {
-	var total int64
-	orderBy := "created_at DESC"
-	if req.SortBy != "" {
-		orderBy = fmt.Sprintf("%s DESC", req.SortBy)
+	if parentCommentID == nil {
+		return nil
 	}
 
-	var comments []*CommentModel
-	if err := query.
-		Order(orderBy).
-		Offset((req.Page - 1) * req.PageSize).
-		Limit(req.PageSize).
-		Find(&comments).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return comments, total, nil
+	// 直接使用计数器更新，避免查询
+	return tx.Model(&CommentModel{}).
+		Where("id = ?", *parentCommentID).
+		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
+		Error
 }
 
 // 从Redis获取评论缓存

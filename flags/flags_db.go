@@ -13,6 +13,8 @@ func DB(c *cli.Context) (err error) {
 		AutoMigrate(&models.UserModel{},
 			&models.ImageModel{},
 			&models.CommentModel{},
+			&models.CategoryModel{},
+			&models.FriendLinkModel{},
 		)
 	if err != nil {
 		zap.L().Error("[ error ] 生成数据库表结构失败")

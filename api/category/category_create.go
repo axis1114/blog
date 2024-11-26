@@ -1,4 +1,4 @@
-﻿package comment
+﻿package category
 
 import (
 	"blog/global"
@@ -9,25 +9,24 @@ import (
 	"go.uber.org/zap"
 )
 
-type CommentListRequest struct {
-	models.CommentRequest
-	ArticleID string `json:"article_id"`
+type CategoryCreate struct {
+	Name string `json:"name"`
 }
 
-func (cm *Comment) CommentList(c *gin.Context) {
-	var req CommentListRequest
+func (cg *Category) CategoryCreate(c *gin.Context) {
+	var req CategoryCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		global.Log.Error("校验参数失败", zap.Error(err))
 		res.Fail(c, res.CodeValidationFail)
 		return
 	}
-
-	comments, err := models.GetArticleComments(req.ArticleID)
+	err := (&models.CategoryModel{
+		Name: req.Name,
+	}).Create()
 	if err != nil {
-		global.Log.Error("获取评论失败", zap.Error(err))
+		global.Log.Error("分类创建失败", zap.Error(err))
 		res.Fail(c, res.CodeInternalError)
 		return
 	}
-
-	res.Success(c, comments)
+	res.Success(c, nil)
 }
