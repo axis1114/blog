@@ -13,6 +13,7 @@ import { AdminUser } from "@/view/backend/user";
 import { AdminComment } from "@/view/backend/comment";
 import { AdminCategory } from "@/view/backend/category";
 import { AdminFriendlink } from "@/view/backend/friendlink";
+import { AdminSetting } from "@/view/backend/setting";
 type BaseRouteType = {
   meta?: {
     auth?: string;
@@ -49,6 +50,7 @@ export const routerObj: RouteType[] = [
       { path: "users", element: <AdminUser /> },
       { path: "categories", element: <AdminCategory /> },
       { path: "friendlinks", element: <AdminFriendlink /> },
+      { path: "settings", element: <AdminSetting /> },
     ],
   },
 ];
