@@ -64,19 +64,15 @@ export const WebHome = () => {
         fetchArticles();
     }, []);
     return (
-        <div className="flex justify-center w-full">
-            <div className="max-w-[1500px] w-full">
-                <Row gutter={24} className='px-[40px]'>
-                    <Col span={19} style={{ padding: '0px' }}>
+        <div className="flex justify-center w-full bg-gray-50 py-8">
+            <div className="max-w-[1500px] w-full px-4">
+                <Row gutter={24}>
+                    <Col span={19}>
                         <List
                             loading={loading}
                             itemLayout="vertical"
                             dataSource={articles}
-                            style={{
-                                borderRight: '2px solid #f0f0f0',
-                                backgroundColor: '#ffffff',
-                                maxWidth: '100%',
-                            }}
+                            className="bg-white shadow-sm border-2 border-gray-200"
                             pagination={{
                                 current: pagination.page,
                                 pageSize: pagination.page_size,
@@ -85,45 +81,22 @@ export const WebHome = () => {
                                 showSizeChanger: true,
                                 showQuickJumper: true,
                                 showTotal: (total) => `共 ${total} 条`,
-                                style: {
-                                    textAlign: 'center',
-                                    padding: '20px',
-                                    display: 'flex',
-                                    justifyContent: 'center'
-                                },
+                                className: "text-center py-8 flex justify-center border-t border-gray-200"
                             }}
                             renderItem={(item) => (
                                 <List.Item
                                     key={item.id}
-                                    style={{
-                                        padding: '28px 32px',
-                                        transition: 'all 0.3s ease',
-                                        borderBottom: '2px solid #f0f0f0',
-                                    }}
+                                    className="px-10 py-8 border-2 border-gray-200"
                                 >
-                                    <div style={{ display: 'flex', gap: '32px' }}>
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <a href={`/article/${item.id}`} style={{ flex: 1, color: 'inherit' }}>
-                                                    <Title level={5} style={{
-                                                        margin: 0,
-                                                        fontSize: '22px',
-                                                        fontWeight: 600,
-                                                        lineHeight: 1.4
-                                                    }}>
+                                    <div className="flex gap-12">
+                                        <div className="flex-1 flex flex-col gap-6 p-5">
+                                            <div className="flex justify-between items-start gap-6">
+                                                <a href={`/article/${item.id}`} className="group">
+                                                    <Title level={5} className="!m-0 text-2xl font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">
                                                         {item.title}
                                                     </Title>
                                                 </a>
-                                                <Tag
-                                                    color="default"
-                                                    style={{
-                                                        marginLeft: '20px',
-                                                        fontSize: '15px',
-                                                        padding: '6px 20px',
-                                                        backgroundColor: '#f5f5f5',
-                                                        border: 'none'
-                                                    }}
-                                                >
+                                                <Tag className="!m-0 px-4 py-1.5 text-sm font-medium border-2 border-indigo-200 bg-indigo-50 text-indigo-600">
                                                     {item.category}
                                                 </Tag>
                                             </div>
@@ -131,88 +104,39 @@ export const WebHome = () => {
                                             <Paragraph
                                                 type="secondary"
                                                 ellipsis={{ rows: 2 }}
-                                                style={{
-                                                    color: '#595959',
-                                                    fontSize: '18px',
-                                                    lineHeight: 1.8,
-                                                    margin: 0
-                                                }}
+                                                className="!m-0 text-gray-500 text-base leading-relaxed"
                                             >
                                                 {item.abstract}
                                             </Paragraph>
 
-                                            <div style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                marginTop: 'auto'
-                                            }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                                    <span style={{
-                                                        color: '#595959',
-                                                        fontSize: '18px',
-                                                        fontWeight: 500
-                                                    }}>
-                                                        {item.user_name}
-                                                    </span>
-                                                    <span style={{
-                                                        color: '#8c8c8c',
-                                                        fontSize: '17px'
-                                                    }}>
-                                                        {new Date(item.created_at).toLocaleDateString()}
-                                                    </span>
+                                            <div className="flex justify-between items-center mt-2">
+                                                <div className="flex items-center gap-6">
+                                                    <div className="border-2 border-gray-200 px-4 py-1.5 bg-gray-50">
+                                                        <span className="text-gray-500 text-sm">
+                                                            {new Date(item.created_at).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
-                                                <div style={{ display: 'flex', gap: '32px' }}>
-                                                    <Space size={12}>
-                                                        <EyeOutlined style={{ fontSize: '20px' }} />
-                                                        <span style={{
-                                                            fontSize: '20px',
-                                                            fontWeight: 500,
-                                                            color: '#595959'
-                                                        }}>
-                                                            {item.look_count}
-                                                        </span>
-                                                    </Space>
-                                                    <Space size={12}>
-                                                        <LikeOutlined style={{ fontSize: '20px' }} />
-                                                        <span style={{
-                                                            fontSize: '20px',
-                                                            fontWeight: 500,
-                                                            color: '#595959'
-                                                        }}>
-                                                            {item.digg_count}
-                                                        </span>
-                                                    </Space>
-                                                    <Space size={12}>
-                                                        <MessageOutlined style={{ fontSize: '20px' }} />
-                                                        <span style={{
-                                                            fontSize: '20px',
-                                                            fontWeight: 500,
-                                                            color: '#595959'
-                                                        }}>
-                                                            {item.comment_count}
-                                                        </span>
-                                                    </Space>
+                                                <div className="flex gap-4">
+                                                    <div className="flex items-center border-2 border-gray-200 px-4 py-1.5 bg-gray-50 hover:bg-white transition-colors">
+                                                        <EyeOutlined className="text-gray-400" />
+                                                        <span className="ml-2.5 text-gray-600">{item.look_count}</span>
+                                                    </div>
+                                                    <div className="flex items-center border-2 border-gray-200 px-4 py-1.5 bg-gray-50 hover:bg-white transition-colors">
+                                                        <MessageOutlined className="text-gray-400" />
+                                                        <span className="ml-2.5 text-gray-600">{item.comment_count}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {item.cover_url && (
-                                            <div style={{
-                                                flexShrink: 0,
-                                                width: '240px',
-                                                height: '160px',
-                                                overflow: 'hidden',
-                                            }}>
+                                            <div className="flex-shrink-0 w-56 h-40 overflow-hidden border-2 border-gray-200 group">
                                                 <img
                                                     src={item.cover_url}
                                                     alt={item.title}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover',
-                                                    }}
+                                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                                 />
                                             </div>
                                         )}
@@ -221,18 +145,24 @@ export const WebHome = () => {
                             )}
                         />
                     </Col>
-                    <Col span={5} style={{ padding: '0px' }}>
-                        <ArticleFilter
-                            onSearch={(params) => {
-                                setPagination(prev => ({
-                                    ...prev,
-                                    ...params,
-                                    page: 1
-                                }));
-                                fetchArticles(1, pagination.page_size, params.category);
-                            }}
-                        />
-                        <FriendLinkList />
+                    <Col span={5}>
+                        <div className="space-y-8">
+                            <div className="bg-white shadow-sm border-2 border-gray-200 ">
+                                <ArticleFilter
+                                    onSearch={(params) => {
+                                        setPagination(prev => ({
+                                            ...prev,
+                                            ...params,
+                                            page: 1
+                                        }));
+                                        fetchArticles(1, pagination.page_size, params.category);
+                                    }}
+                                />
+                            </div>
+                            <div className="bg-white shadow-sm border-2 border-gray-200">
+                                <FriendLinkList />
+                            </div>
+                        </div>
                     </Col>
                 </Row>
             </div>

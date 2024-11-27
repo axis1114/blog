@@ -1,5 +1,4 @@
-﻿
-import { createBrowserRouter, RouteObject } from "react-router-dom";
+﻿import { createBrowserRouter, RouteObject } from "react-router-dom";
 import { WebIndex } from "@/view/frontend/index";
 import { WebHome } from "@/view/frontend/home";
 import { AdminIndex } from "@/view/backend/index";
@@ -14,6 +13,7 @@ import { AdminComment } from "@/view/backend/comment";
 import { AdminCategory } from "@/view/backend/category";
 import { AdminFriendlink } from "@/view/backend/friendlink";
 import { AdminSetting } from "@/view/backend/setting";
+import { NotFound } from '@/components/NotFound/NotFound';
 type BaseRouteType = {
   meta?: {
     auth?: string;
@@ -53,6 +53,7 @@ export const routerObj: RouteType[] = [
       { path: "settings", element: <AdminSetting /> },
     ],
   },
+  { path: "*", element: <NotFound /> },
 ];
 
 export const router: any = createBrowserRouter(routerObj, {

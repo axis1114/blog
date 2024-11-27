@@ -112,7 +112,7 @@ export const CommentArea = ({
                     {comment.created_at}
                 </span>
             }
-            className="bg-slate-50 hover:bg-indigo-50/50 transition-colors duration-200 p-4 border border-slate-200"
+            className="bg-slate-50 hover:bg-indigo-50/50 transition-colors duration-200 p-4 border-2 border-slate-300"
         >
             {comment.sub_comments?.map((subComment, subIndex) => (
                 <div key={subComment.id} className="pl-6 mt-4 border-l-2 border-indigo-200">
@@ -123,9 +123,9 @@ export const CommentArea = ({
     );
 
     return (
-        <div className={`bg-white border border-slate-200 ${className}`}>
+        <div className={`bg-white border-2 border-slate-300 ${className}`}>
             {/* 评论输入区域 */}
-            <div className="p-6 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50">
+            <div className="p-6 border-b-2 border-slate-300 bg-gradient-to-b from-white to-slate-50">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">
                     {replyTo ? `回复 ${replyTo.name}` : '发表评论'}
                 </h3>
@@ -191,10 +191,10 @@ export const CommentArea = ({
 
             {/* 评论列表 */}
             <List
-                className="divide-y divide-slate-200"
+                className="divide-y-2 divide-slate-300"
                 dataSource={comments || []}
                 header={
-                    <div className="px-6 py-4 bg-slate-50 text-base font-semibold text-slate-800 border-b border-slate-200">
+                    <div className="px-6 py-4 bg-slate-50 text-base font-semibold text-slate-800 border-b-2 border-slate-300">
                         {`${comments?.length || 0} 条评论`}
                     </div>
                 }

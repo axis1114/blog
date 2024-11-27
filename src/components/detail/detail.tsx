@@ -307,73 +307,11 @@ const MarkdownViewer = ({ content }: { content: string }) => {
     );
 };
 
-// 文章目录组件
-const TableOfContents = ({ content }: { content: string }) => {
-    const headings = extractHeadings(content);
-
-    // 处理目录项点击，实现平滑滚动
-    const handleClick = (heading: { href: string }) => (e: React.MouseEvent) => {
-        e.preventDefault();
-        const targetId = heading.href.substring(1);
-        const element = document.getElementById(targetId);
-
-        if (element) {
-            const offset = 100;
-            const elementPosition = element.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.scrollY - offset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
-        }
-    };
-
-    return (
-        <div className='p-8 w-[350px]'>
-            <div className='border border-gray-200'>
-                <h3 className="px-4 py-3 text-lg font-medium">
-                    文章目录
-                </h3>
-                <nav className="px-4 py-3 max-h-[300px] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-                    {headings.map((heading) => (
-                        <a
-                            key={heading.key}
-                            href={heading.href}
-                            onClick={handleClick(heading)}
-                            className={`
-                            block py-2 text-gray-600 hover:text-blue-500 hover:bg-gray-50 
-                            transition-colors
-                            ${heading.level === 1 ? 'text-base font-medium' : ''}
-                            ${heading.level === 2 ? 'pl-4 text-[15px]' : ''}
-                            ${heading.level === 3 ? 'pl-8 text-[14px] text-gray-500' : ''}
-                            ${heading.level === 4 ? 'pl-12 text-[13px] text-gray-500' : ''}
-                            ${heading.level === 5 ? 'pl-16 text-[13px] text-gray-500' : ''}
-                            ${heading.level === 6 ? 'pl-20 text-[13px] text-gray-500' : ''}
-                        `}
-                        >
-                            <span className="flex items-center">
-                                <span className={`
-                                inline-block w-1.5 h-1.5 mr-2
-                                ${heading.level === 1 ? 'bg-blue-500' : ''}
-                                ${heading.level === 2 ? 'bg-blue-400' : ''}
-                                ${heading.level === 3 ? 'bg-gray-400' : ''}
-                                ${heading.level >= 4 ? 'bg-gray-300' : ''}
-                            `}></span>
-                                {heading.title}
-                            </span>
-                        </a>
-                    ))}
-                </nav>
-            </div>
-        </div>
-    );
-};
 
 // 文章头部信息组件
 const ArticleHeader = ({ article }: { article: articleType }) => {
     return (
-        <div className="border-b border-gray-200 pl-12 pr-5 border-r border-gray-200">
+        <div className="border-2 border-gray-200 p-8 bg-white">
             {/* 文章标题 */}
             <h1 className="text-3xl font-bold mb-4 text-gray-900">
                 {article.title}
@@ -382,30 +320,29 @@ const ArticleHeader = ({ article }: { article: articleType }) => {
             {/* 文章信息 */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-
                     {/* 分类标签 */}
-                    <div className="px-3 py-1 bg-blue-50 text-blue-600 text-xl">
+                    <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-xl border-2 border-blue-200">
                         {article.category}
                     </div>
 
                     {/* 发布时间 */}
-                    <div className="text-xl text-gray-500">
+                    <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
                         发布于{new Date(article.created_at).toLocaleDateString()}
                     </div>
-                    <div className="text-xl text-gray-500">
+                    <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
                         更新于{new Date(article.updated_at).toLocaleDateString()}
                     </div>
                 </div>
 
                 {/* 统计信息 */}
                 <div className="flex items-center space-x-4 text-gray-500 text-xl">
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         <span>{article.look_count} 阅读</span>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
@@ -525,21 +462,67 @@ export const ArticleDetail = () => {
     }
 
     return (
-        <Row gutter={24}>
-            <Col span={18} style={{ padding: '0px 0px 0px 12px' }}>
-                <ArticleHeader article={article} />
-                <MarkdownViewer content={article.content} />
-                <CommentArea
-                    comments={comments}
-                    onCommentSuccess={fetchComments}
-                />
-                <BackToTop />
-            </Col>
+        <div className="flex justify-center w-full bg-gray-50 py-8">
+            <div className="max-w-[1500px] w-full px-4">
+                <Row gutter={24}>
+                    <Col span={18}>
+                        <div className="bg-white shadow-sm">
+                            <ArticleHeader article={article} />
+                            <div className="border-x-2 border-gray-200">
+                                <MarkdownViewer content={article.content} />
+                            </div>
+                            <div className="border-2 border-gray-200">
+                                <CommentArea
+                                    comments={comments}
+                                    onCommentSuccess={fetchComments}
+                                />
+                            </div>
+                        </div>
+                        <BackToTop />
+                    </Col>
 
-            <Col span={6} className="sticky top-4" style={{ height: 'fit-content' }}>
-                <ArticleSearch />
-                {article && <TableOfContents content={article.content} className='p-8' />}
-            </Col>
-        </Row>
+                    <Col span={6} className="sticky top-4" style={{ height: 'fit-content' }}>
+                        <div className="border-2 border-gray-200 bg-white shadow-sm mb-4">
+                            <ArticleSearch />
+                        </div>
+                        {article && (
+                            <div className="border-2 border-gray-200 bg-white shadow-sm">
+                                <h3 className="px-6 py-4 text-lg font-medium border-b-2 border-gray-200">
+                                    文章目录
+                                </h3>
+                                <nav className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+                                    {extractHeadings(article.content).map((heading) => (
+                                        <a
+                                            key={heading.key}
+                                            href={heading.href}
+                                            className={`
+                                                block py-2 text-gray-600 hover:bg-gray-50 px-4
+                                                ${heading.level === 1 ? 'text-base font-medium' : ''}
+                                                ${heading.level === 2 ? 'pl-8 text-[15px]' : ''}
+                                                ${heading.level === 3 ? 'pl-12 text-[14px] text-gray-500' : ''}
+                                                ${heading.level === 4 ? 'pl-16 text-[13px] text-gray-500' : ''}
+                                                ${heading.level === 5 ? 'pl-20 text-[13px] text-gray-500' : ''}
+                                                ${heading.level === 6 ? 'pl-24 text-[13px] text-gray-500' : ''}
+                                            `}
+                                        >
+                                            <span className="flex items-center">
+                                                <span className={`
+                                                    inline-block w-1.5 h-1.5 mr-2
+                                                    ${heading.level === 1 ? 'bg-blue-500' : ''}
+                                                    ${heading.level === 2 ? 'bg-blue-400' : ''}
+                                                    ${heading.level === 3 ? 'bg-gray-400' : ''}
+                                                    ${heading.level >= 4 ? 'bg-gray-300' : ''}
+                                                `}></span>
+                                                {heading.title}
+                                            </span>
+                                        </a>
+                                    ))}
+                                </nav>
+                            </div>
+                        )}
+                    </Col>
+                </Row>
+            </div>
+        </div>
     );
 };
