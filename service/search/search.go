@@ -53,7 +53,9 @@ func ComList[T any](model T, option Option) (list []T, total int64, err error) {
 	if option.Page <= 0 {
 		option.Page = 1
 	}
-
+	if option.PageSize <= 0 {
+		option.PageSize = 100
+	}
 	// 设置默认排序
 	if option.OrderBy == "" {
 		option.OrderBy = "created_at desc"
