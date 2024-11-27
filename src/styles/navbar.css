@@ -1,0 +1,12 @@
+.ant-menu-item {
+    color: #4b5563 !important;
+    margin: 0 8px !important;
+}
+
+.ant-menu-item:hover {
+    color: #7c3aed !important;
+}
+
+.ant-menu-item-selected {
+    color: #7c3aed !important;
+} 

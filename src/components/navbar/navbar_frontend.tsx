@@ -12,7 +12,7 @@ export const NavbarFrontend = () => {
     const menuItems = navItems.map(item => ({
         key: item.key,
         label: (
-            <a href={item.path}>
+            <a href={item.path} className="text-gray-600 hover:text-purple-600 transition-colors">
                 {item.label}
             </a>
         ),
