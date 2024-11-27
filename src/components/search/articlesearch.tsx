@@ -1,4 +1,4 @@
-﻿import { AutoComplete, Input } from 'antd';
+﻿import { AutoComplete, Input, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { articleList, articleType, articleParamsType } from '../../api/article';
 import { useState } from 'react';
@@ -21,7 +21,7 @@ export const ArticleSearch = () => {
             const res = await articleList(params);
             setSearchSuggestions(res.data.list);
         } catch (error) {
-            console.error('获取搜索建议失败:', error);
+            message.error("获取搜索建议失败");
         }
     };
 
@@ -30,13 +30,13 @@ export const ArticleSearch = () => {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
+        <div className="p-8">
             <AutoComplete
                 style={{ width: '100%' }}
                 onSearch={handleSearchInput}
                 onSelect={handleSelect}
                 dropdownStyle={{
-                    maxHeight: '400px',
+                    maxHeight: '500px',
                     overflow: 'auto',
                     padding: '12px',
                     borderRadius: '0',

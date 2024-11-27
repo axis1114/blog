@@ -1,4 +1,4 @@
-﻿import { baseResponse, useAxios } from ".";
+﻿import { baseResponse, useAxios, paramsType, listDataType } from ".";
 
 export interface friendlinkCreateType {
   name: string;
@@ -20,8 +20,10 @@ export interface friendlinkType {
   link: string;
 }
 
-export function friendlinkList(): Promise<baseResponse<friendlinkType[]>> {
-  return useAxios.get("/api/friendlink");
+export function friendlinkList(
+  params?: paramsType
+): Promise<baseResponse<listDataType<friendlinkType>>> {
+  return useAxios.get("/api/friendlink", { params: { ...params } });
 }
 
 export function friendlinkDelete(id: number): Promise<baseResponse<string>> {

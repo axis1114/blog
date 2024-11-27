@@ -118,7 +118,7 @@ export const CommentArea = ({
     );
 
     return (
-        <div className={`bg-white shadow-lg border border-slate-200 ${className}`}>
+        <div className={`bg-white border border-slate-200 ${className}`}>
             {/* 评论输入区域 */}
             <div className="p-6 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50">
                 <h3 className="text-xl font-bold text-slate-800 mb-4">

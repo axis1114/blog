@@ -2,15 +2,17 @@
 import { articleList, articleType, articleParamsType, } from '../../api/article';
 import { Row, Col, List, Typography, Space, Tag } from 'antd';
 import { EyeOutlined, LikeOutlined, MessageOutlined } from '@ant-design/icons';
-import { ArticleSearch } from '../../components/search/articlesearch';
+import { ArticleFilter } from '../../components/search/ArticleFilter';
+import { FriendLinkList } from '../../components/friendlink/friendlink';
 
 const { Title, Paragraph } = Typography;
 
 // 扩展 articleParamsType 接口来包含总数
 interface PaginationState extends articleParamsType {
     total: number;
-    keyword?: string;
 }
+
+
 
 export const WebHome = () => {
     const [articles, setArticles] = useState<articleType[]>([]);
@@ -25,22 +27,23 @@ export const WebHome = () => {
         key: undefined
     });
 
-    const fetchArticles = async (page = pagination.page, pageSize = pagination.page_size) => {
+    const fetchArticles = async (page = pagination.page, pageSize = pagination.page_size, category?: string) => {
         setLoading(true);
         try {
             const params: articleParamsType = {
                 page,
                 page_size: pageSize,
-                category: pagination.category === '全部' ? undefined : pagination.category,
+                category: category === undefined ? undefined : category,
                 sort_field: pagination.sort_field,
                 sort_order: pagination.sort_order,
-                key: pagination.keyword
+                key: pagination.key
             };
             const res = await articleList(params);
             setArticles(res.data.list);
             setPagination(prev => ({
                 ...prev,
-                total: res.data.total
+                total: res.data.total,
+                category: category
             }));
         } catch (error) {
             console.error('获取文章列表失败:', error);
@@ -57,14 +60,13 @@ export const WebHome = () => {
         fetchArticles(page, pageSize);
     };
 
-
     useEffect(() => {
         fetchArticles();
     }, []);
 
     return (
-        <Row gutter={24}>
-            <Col span={18} style={{ padding: '0px 0px 0px 12px' }}>
+        <Row gutter={24} className="px-[60px]">
+            <Col span={18}>
                 <List
                     loading={loading}
                     itemLayout="vertical"
@@ -83,7 +85,7 @@ export const WebHome = () => {
                         showTotal: (total) => `共 ${total} 条`,
                         style: {
                             textAlign: 'center',
-                            marginTop: '20px',
+                            padding: '20px',
                             display: 'flex',
                             justifyContent: 'center'
                         },
@@ -219,7 +221,17 @@ export const WebHome = () => {
             </Col>
 
             <Col span={6} style={{ backgroundColor: '#ffffff', padding: '0px' }}>
-                <ArticleSearch />
+                <ArticleFilter
+                    onSearch={(params) => {
+                        setPagination(prev => ({
+                            ...prev,
+                            ...params,
+                            page: 1
+                        }));
+                        fetchArticles(1, pagination.page_size, params.category);
+                    }}
+                />
+                <FriendLinkList />
             </Col>
         </Row>
     );

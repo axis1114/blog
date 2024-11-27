@@ -1,4 +1,4 @@
-﻿import { baseResponse, useAxios } from ".";
+﻿import { baseResponse, paramsType, useAxios, listDataType } from ".";
 
 export interface categoryCreateType {
   name: string;
@@ -18,8 +18,10 @@ export interface categoryType {
   name: string;
 }
 
-export function categoryList(): Promise<baseResponse<categoryType[]>> {
-  return useAxios.get("/api/category");
+export function categoryList(
+  params?: paramsType
+): Promise<baseResponse<listDataType<categoryType>>> {
+  return useAxios.get("/api/category", { params: { ...params } });
 }
 
 export function categoryDelete(id: number): Promise<baseResponse<string>> {

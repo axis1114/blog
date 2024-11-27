@@ -10,6 +10,8 @@ import {
     FileOutlined,
     PictureOutlined,
     CommentOutlined,
+    FolderOutlined,
+    LinkOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -44,6 +46,11 @@ export const Sidebar: React.FC = () => {
                 label: '文章管理'
             },
             {
+                key: '/admin/categories',
+                icon: <FolderOutlined />,
+                label: '分类管理'
+            },
+            {
                 key: '/admin/comments',
                 icon: <CommentOutlined />,
                 label: '评论管理'
@@ -52,6 +59,12 @@ export const Sidebar: React.FC = () => {
                 key: '/admin/images',
                 icon: <PictureOutlined />,
                 label: '图片管理'
+            },
+
+            {
+                key: '/admin/friendlinks',
+                icon: <LinkOutlined />,
+                label: '友情链接'
             },
             {
                 key: '/admin/settings',

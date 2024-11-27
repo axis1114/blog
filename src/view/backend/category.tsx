@@ -1,0 +1,226 @@
+﻿import { useEffect, useState } from 'react';
+import { Table, Button, Modal, Form, Input, message, Space } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { categoryType, categoryList, categoryDelete, categoryCreate } from '@/api/category';
+import { ColumnsType } from 'antd/es/table';
+import { paramsType } from '@/api';
+interface PaginationState extends paramsType {
+    total: number;
+}
+export const AdminCategory = () => {
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState<categoryType[]>([]);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const [pagination, setPagination] = useState<PaginationState>({
+        page: 1,
+        page_size: 10,
+        total: 0,
+    });
+    // 获取分类列表
+    const fetchData = async (page = 1) => {
+        setLoading(true);
+        try {
+            const res = await categoryList({
+                page,
+                page_size: pagination.page_size,
+            });
+            if (res.code === 2000) {
+                setData(res.data.list);
+                setPagination({
+                    ...pagination,
+                    page,
+                    total: res.data.total,
+                });
+            } else {
+                message.error(res.msg);
+            }
+        } catch (error) {
+            message.error("获取分类列表失败");
+        }
+        setLoading(false);
+    };
+
+    // 删除分类
+    const handleDelete = async (id: number) => {
+        if (!id) {
+            message.error("无效的分类ID");
+            return;
+        }
+
+        Modal.confirm({
+            title: '确认删除',
+            content: '确定要删除这个分类吗？删除后不可恢复。',
+            okText: '确认',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    const response = await categoryDelete(id);
+                    if (response.code === 2000) {
+                        message.success("删除成功");
+                        fetchData();
+                    } else {
+                        message.error(response.msg || "删除失败");
+                    }
+                } catch (error) {
+                    console.error('删除分类错误:', error);
+                    message.error("删除失败，请稍后重试");
+                }
+            }
+        });
+    };
+
+    // 打开弹框
+    const showModal = () => {
+        setIsModalVisible(true);
+        form.resetFields();
+    };
+
+    // 关闭弹框
+    const handleCancel = () => {
+        setIsModalVisible(false);
+        form.resetFields();
+    };
+
+    // 提交表单
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            if (!values.name || values.name.trim() === '') {
+                message.error("分类名称不能为空");
+                return;
+            }
+
+            setSubmitLoading(true);
+            const response = await categoryCreate(values);
+
+            if (response.code === 2000) {
+                message.success("创建成功");
+                handleCancel();
+                fetchData();
+            } else {
+                message.error(response.msg || "创建失败");
+            }
+        } catch (error) {
+            console.error('创建分类错误:', error);
+            message.error("创建失败，请稍后重试");
+        } finally {
+            setSubmitLoading(false);
+        }
+    };
+
+    const columns: ColumnsType<categoryType> = [
+        {
+            title: "ID",
+            dataIndex: "id",
+            key: "id",
+        },
+        {
+            title: "分类名称",
+            dataIndex: "name",
+            key: "name",
+        },
+        {
+            title: "创建时间",
+            dataIndex: "created_at",
+            key: "created_at",
+        },
+        {
+            title: "操作",
+            key: "action",
+            render: (_, record) => (
+                <Space size="middle">
+                    <Button
+                        type="link"
+                        danger
+                        onClick={() => handleDelete(record.id)}
+                    >
+                        删除
+                    </Button>
+                </Space>
+            ),
+        },
+    ];
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    return (
+        <div style={{ minHeight: '100%' }}>
+            {/* 头部区域 */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px 24px',
+                borderBottom: '1px solid #f0f0f0',
+            }}>
+                <h2 style={{ margin: 0 }}>分类管理</h2>
+                <Button
+                    type="primary"
+                    onClick={showModal}
+                    size="large"
+                    icon={<PlusOutlined />}
+                >
+                    新建分类
+                </Button>
+            </div>
+
+            {/* 表格区域 */}
+            <div style={{ padding: '24px' }}>
+                <Table
+                    columns={columns}
+                    dataSource={data}
+                    rowKey="id"
+                    pagination={{
+                        ...pagination,
+                        position: ['bottomCenter'],
+                        style: { marginTop: '16px' }
+                    }}
+                    loading={loading}
+                    onChange={(pagination) => fetchData(pagination.current)}
+                />
+            </div>
+
+            <Modal
+                title="新建分类"
+                open={isModalVisible}
+                onCancel={handleCancel}
+                footer={[
+                    <Button key="cancel" onClick={handleCancel}>
+                        取消
+                    </Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        loading={submitLoading}
+                        onClick={handleSubmit}
+                    >
+                        提交
+                    </Button>
+                ]}
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                >
+                    <Form.Item
+                        label="分类名称"
+                        name="name"
+                        rules={[
+                            { max: 50, message: "分类名称最多50个字符" }
+                        ]}
+                    >
+                        <Input
+                            placeholder="请输入分类名称"
+                            maxLength={50}
+                            showCount
+                        />
+                    </Form.Item>
+                </Form>
+            </Modal>
+        </div>
+    );
+};

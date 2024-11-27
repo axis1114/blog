@@ -27,7 +27,6 @@ export const AdminImage = () => {
                 page,
                 page_size: pagination.page_size,
             });
-            console.log(res);
             if (res.code === 2000) {
                 setData(res.data.list);
                 setPagination({
@@ -84,6 +83,11 @@ export const AdminImage = () => {
     };
 
     const columns: ColumnsType<imageType> = [
+        {
+            title: "ID",
+            dataIndex: "id",
+            key: "id",
+        },
         {
             title: "预览",
             key: "preview",

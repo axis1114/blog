@@ -115,7 +115,7 @@ export const AdminComment = () => {
                             />
                         </>
                     }
-                    dataSource={articles}
+                    dataSource={articles || []}
                     renderItem={(article) => (
                         <List.Item
                             onClick={() => handleArticleClick(article.id)}

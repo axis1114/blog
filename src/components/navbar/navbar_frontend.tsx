@@ -25,7 +25,7 @@ export const NavbarFrontend = () => {
                 top: 0,
                 width: '100%',
                 zIndex: 100,
-                padding: '0 24px',
+                padding: '0 60px',
                 backgroundColor: '#fafafa',
                 borderBottom: '2px solid #f0f0f0',
                 height: '100px',
