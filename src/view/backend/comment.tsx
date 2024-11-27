@@ -48,6 +48,7 @@ export const AdminComment = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            message.error('获取文章列表失败');
             console.error('获取文章列表失败:', error);
         }
     }, [pagination]);
@@ -62,6 +63,7 @@ export const AdminComment = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            message.error('获取评论列表失败');
             console.error('获取评论列表失败:', error);
         }
     }, []);
@@ -80,6 +82,7 @@ export const AdminComment = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            message.error('搜索文章失败');
             console.error('搜索文章失败:', error);
         }
     }, [pagination]);
@@ -94,6 +97,7 @@ export const AdminComment = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            message.error('获取评论列表失败');
             console.error('获取评论列表失败:', error);
         }
     }, [selectedArticleId]);

@@ -21,8 +21,9 @@ export const AdminImage = () => {
 
     // 获取图片列表
     const fetchData = async (page = 1) => {
-        setLoading(true);
         try {
+            setLoading(true);
+
             const res = await imageList({
                 page,
                 page_size: pagination.page_size,
@@ -38,9 +39,11 @@ export const AdminImage = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            console.error("获取图片列表失败:", error);
             message.error("获取图片列表失败");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     // 删除图片
@@ -50,11 +53,16 @@ export const AdminImage = () => {
             content: "确定要删除这张图片吗？删除后不可恢复。",
             onOk: async () => {
                 try {
-                    await imageDelete(id);
-                    message.success("删除成功");
-                    fetchData(pagination.page);
+                    const res = await imageDelete(id);
+                    if (res.code === 2000) {
+                        message.success("删除成功");
+                        fetchData(pagination.page);
+                    } else {
+                        message.error(res.msg);
+                    }
                 } catch (error) {
                     message.error("删除失败");
+                    console.error("删除失败:", error);
                 }
             },
         });
@@ -64,10 +72,15 @@ export const AdminImage = () => {
     const handleUpload = async (file: RcFile) => {
         try {
             const files = file instanceof FileList ? Array.from(file) : [file];
-            await imageUpload(files);
-            message.success("上传成功");
-            fetchData(pagination.page);
+            const res = await imageUpload(files);
+            if (res.code === 2000) {
+                message.success("上传成功");
+                fetchData(pagination.page);
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
+            console.error("上传失败:", error);
             message.error("上传失败");
         }
         return false;

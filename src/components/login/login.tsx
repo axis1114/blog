@@ -28,9 +28,9 @@ const LoginTitle = styled.h2`
 `;
 
 interface LoginForm {
-    account: string;
-    password: string;
-    captcha: string;
+    account: string;    // 用户账号
+    password: string;   // 用户密码
+    captcha: string;    // 验证码
 }
 
 export const AdminLogin = () => {
@@ -53,6 +53,7 @@ export const AdminLogin = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            console.error('获取验证码失败:', error);
             message.error('获取验证码失败');
         }
     };
@@ -78,10 +79,11 @@ export const AdminLogin = () => {
                 message.success('登录成功！');
                 navigate(from);
             } else {
-                message.error(res.msg || '登录失败');
+                message.error(res.msg);
                 refreshCaptcha();
             }
         } catch (error) {
+            console.error('登录失败:', error);
             message.error('登录失败，请重试！');
             refreshCaptcha();
         }

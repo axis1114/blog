@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Typography, Space, message } from 'antd';
+import { Typography, message } from 'antd';
 import { friendlinkType, friendlinkList } from '../../api/friendlink';
 
 export const FriendLinkList = () => {
@@ -8,8 +8,13 @@ export const FriendLinkList = () => {
     const fetchFriendlinks = async () => {
         try {
             const res = await friendlinkList();
-            setFriendlinks(res.data.list);
+            if (res.code === 2000) {
+                setFriendlinks(res.data.list);
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
+            console.error('获取友链列表失败:', error);
             message.error("获取友链列表失败");
         }
     };

@@ -28,22 +28,28 @@ export const AdminArticle = () => {
     const [editingArticle, setEditingArticle] = useState<articleType | null>(null);
     // 获取文章列表
     const fetchData = async (page = 1) => {
-        setLoading(true);
         try {
+            setLoading(true);
             const res = await articleList({
                 page,
                 page_size: pagination.pageSize,
             });
-            setData(res.data.list);
-            setPagination({
-                ...pagination,
-                current: page,
-                total: res.data.total,
-            });
+            if (res.code === 2000) {
+                setData(res.data.list);
+                setPagination({
+                    ...pagination,
+                    current: page,
+                    total: res.data.total,
+                });
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
+            console.error('获取文章列表失败:', error);
             message.error("获取文章列表失败");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     // 删除文章
@@ -60,11 +66,11 @@ export const AdminArticle = () => {
                         message.success("删除成功");
                         fetchData(pagination.current);
                     } else {
-                        message.error(response.msg || "删除失败");
+                        message.error(response.msg);
                     }
                 } catch (error: any) {
                     console.error('删除文章失败:', error);
-                    message.error(error.message || "删除失败，请稍后重试");
+                    message.error(error.message);
                 }
             }
         });
@@ -104,8 +110,13 @@ export const AdminArticle = () => {
     const fetchImages = async () => {
         try {
             const res = await imageList({ page: 1, page_size: 20 });
-            setImages(res.data.list);
+            if (res.code === 2000) {
+                setImages(res.data.list);
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
+            console.error('获取图片列表失败:', error);
             message.error('获取图片列表失败');
         }
     };
@@ -158,6 +169,7 @@ export const AdminArticle = () => {
             handleCancel();
             fetchData(pagination.current);
         } catch (error) {
+            console.error('提交表单失败:', error);
             message.error(editingArticle ? "更新失败" : "创建失败");
         } finally {
             setSubmitLoading(false);

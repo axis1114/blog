@@ -1,35 +1,43 @@
-import { AutoComplete, Input, Typography, Space, Tag } from 'antd';
+import { AutoComplete, Input, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { articleList, articleType, articleParamsType } from '../../api/article';
 import { categoryList, categoryType } from '../../api/category';
 import { useEffect, useState } from 'react';
 
-const { Title } = Typography;
 
+
+// 组件属性接口定义
 interface ArticleFilterProps {
-    onSearch?: (params: articleParamsType) => void;
+    onSearch?: (params: articleParamsType) => void;  // 搜索回调函数
 }
 
 export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
-    const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]);
-    const [categories, setCategories] = useState<categoryType[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>('All');
+    // 状态定义
+    const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]); // 搜索建议列表
+    const [categories, setCategories] = useState<categoryType[]>([]);             // 分类列表
+    const [selectedCategory, setSelectedCategory] = useState<string>('All');      // 当前选中的分类
 
-    // 获取分类列表
+    // 获取分类列表数据
     const fetchCategories = async () => {
         try {
             const res = await categoryList();
-            setCategories(res.data.list);
+            if (res.code === 2000) {
+                setCategories(res.data.list);
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
+            message.error('获取分类列表失败');
             console.error('获取分类列表失败:', error);
         }
     };
 
+    // 组件挂载时获取分类数据
     useEffect(() => {
         fetchCategories();
     }, []);
 
-    // 处理搜索输入
+    // 处理搜索框输入，获取搜索建议
     const handleSearchInput = async (value: string) => {
         if (!value.trim()) {
             setSearchSuggestions([]);
@@ -37,6 +45,7 @@ export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
         }
 
         try {
+            // 构建搜索参数
             const params: articleParamsType = {
                 page: 1,
                 page_size: 5,
@@ -44,18 +53,20 @@ export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
                 category: selectedCategory === 'All' ? undefined : selectedCategory
             };
             const res = await articleList(params);
-            setSearchSuggestions(res.data.list);
+            if (res.code === 2000) {
+                setSearchSuggestions(res.data.list);
+            }
         } catch (error) {
             console.error('获取搜索建议失败:', error);
         }
     };
 
-    // 处理搜索选择
+    // 处理搜索建议选择，跳转到文章详情
     const handleSelect = (value: string, option: any) => {
         window.location.href = `/article/${option.key}`;
     };
 
-    // 处理分类选择
+    // 处理分类选择，触发搜索回调
     const handleCategorySelect = (category: string) => {
         const newCategory = category === 'All' ? undefined : category;
         setSelectedCategory(category);
@@ -85,6 +96,7 @@ export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
                         border: '1px solid #d9d9d9',
                         borderTop: '1px solid #d9d9d9'
                     }}
+                    // 搜索建议下拉选项配置
                     options={searchSuggestions.map(article => ({
                         label: (
                             <div style={{ padding: '8px' }}>
@@ -118,13 +130,16 @@ export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
                 <h5 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
                     <span className="mr-2">📑</span>分类
                 </h5>
+                {/* 分类选项列表 */}
                 <div className="space-y-2">
+                    {/* 全部分类选项 */}
                     <div
                         className="px-6 py-3 cursor-pointer transition-all duration-300 text-gray-600 hover:bg-gray-50"
                         onClick={() => handleCategorySelect('All')}
                     >
                         <span className="text-base font-medium">全部</span>
                     </div>
+                    {/* 其他分类选项列表 */}
                     {categories.map(category => (
                         <div
                             key={category.id}

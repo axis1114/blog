@@ -20,8 +20,8 @@ export const AdminFriendlink = () => {
     });
     // 获取友链列表
     const fetchData = async (page = 1) => {
-        setLoading(true);
         try {
+            setLoading(true);
             const res = await friendlinkList({
                 page,
                 page_size: pagination.page_size,
@@ -39,8 +39,10 @@ export const AdminFriendlink = () => {
             }
         } catch (error) {
             message.error("获取友情链接列表失败");
+            console.error("获取友情链接列表失败:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     // 删除友链
@@ -57,10 +59,11 @@ export const AdminFriendlink = () => {
                         message.success("删除成功");
                         fetchData();
                     } else {
-                        message.error(response.msg || "删除失败");
+                        message.error(response.msg);
                     }
                 } catch (error: any) {
                     message.error("删除失败，请稍后重试");
+                    console.error("删除失败:", error);
                 }
             }
         });
@@ -84,12 +87,17 @@ export const AdminFriendlink = () => {
             const values = await form.validateFields();
             setSubmitLoading(true);
 
-            await friendlinkCreate(values);
-            message.success("创建成功");
-            handleCancel();
-            fetchData();
+            const res = await friendlinkCreate(values);
+            if (res.code === 2000) {
+                message.success("创建成功");
+                handleCancel();
+                fetchData();
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
             message.error("创建失败");
+            console.error("创建失败:", error);
         } finally {
             setSubmitLoading(false);
         }

@@ -1,4 +1,4 @@
-﻿import { AutoComplete, Input, message } from 'antd';
+﻿import { AutoComplete, Input } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { articleList, articleType, articleParamsType } from '../../api/article';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 export const ArticleSearch = () => {
     const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]);
 
+    // 处理搜索框输入，获取搜索建议
     const handleSearchInput = async (value: string) => {
         if (!value.trim()) {
             setSearchSuggestions([]);
@@ -13,18 +14,22 @@ export const ArticleSearch = () => {
         }
 
         try {
+            // 构建搜索参数
             const params: articleParamsType = {
                 page: 1,
                 page_size: 5,
                 key: value,
             };
             const res = await articleList(params);
-            setSearchSuggestions(res.data.list);
+            if (res.code === 2000) {
+                setSearchSuggestions(res.data.list);
+            }
         } catch (error) {
-            message.error("获取搜索建议失败");
+            console.error('获取搜索建议失败:', error);
         }
     };
 
+    // 处理搜索建议选择，跳转到文章详情
     const handleSelect = (value: string, option: any) => {
         window.location.href = `/article/${option.key}`;
     };

@@ -4,10 +4,14 @@ import { PlusOutlined } from '@ant-design/icons';
 import { categoryType, categoryList, categoryDelete, categoryCreate } from '@/api/category';
 import { ColumnsType } from 'antd/es/table';
 import { paramsType } from '@/api';
+
+// 分页状态接口定义
 interface PaginationState extends paramsType {
     total: number;
 }
+
 export const AdminCategory = () => {
+    // 状态管理
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<categoryType[]>([]);
@@ -18,10 +22,11 @@ export const AdminCategory = () => {
         page_size: 10,
         total: 0,
     });
-    // 获取分类列表
+
+    // 获取分类列表数据
     const fetchData = async (page = 1) => {
-        setLoading(true);
         try {
+            setLoading(true);
             const res = await categoryList({
                 page,
                 page_size: pagination.page_size,
@@ -37,12 +42,14 @@ export const AdminCategory = () => {
                 message.error(res.msg);
             }
         } catch (error) {
+            console.error('获取分类列表失败:', error);
             message.error("获取分类列表失败");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    // 删除分类
+    // 删除分类的处理函数
     const handleDelete = async (id: number) => {
         if (!id) {
             message.error("无效的分类ID");
@@ -65,27 +72,27 @@ export const AdminCategory = () => {
                     }
                 } catch (error) {
                     console.error('删除分类错误:', error);
-                    message.error("删除失败，请稍后重试");
+                    message.error('删除失败');
                 }
             }
         });
     };
 
-    // 打开弹框
+    // 模态框相关操作
     const showModal = () => {
         setIsModalVisible(true);
         form.resetFields();
     };
 
-    // 关闭弹框
     const handleCancel = () => {
         setIsModalVisible(false);
         form.resetFields();
     };
 
-    // 提交表单
+    // 提交表单处理
     const handleSubmit = async () => {
         try {
+            setSubmitLoading(true);
             const values = await form.validateFields();
             if (!values.name || values.name.trim() === '') {
                 message.error("分类名称不能为空");
@@ -100,7 +107,7 @@ export const AdminCategory = () => {
                 handleCancel();
                 fetchData();
             } else {
-                message.error(response.msg || "创建失败");
+                message.error(response.msg);
             }
         } catch (error) {
             console.error('创建分类错误:', error);
@@ -110,6 +117,7 @@ export const AdminCategory = () => {
         }
     };
 
+    // 表格列配置
     const columns: ColumnsType<categoryType> = [
         {
             title: "ID",
@@ -143,13 +151,14 @@ export const AdminCategory = () => {
         },
     ];
 
+    // 初始化加载数据
     useEffect(() => {
         fetchData();
     }, []);
 
     return (
         <div style={{ minHeight: '100%' }}>
-            {/* 头部区域 */}
+            {/* 页面头部 */}
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -168,7 +177,7 @@ export const AdminCategory = () => {
                 </Button>
             </div>
 
-            {/* 表格区域 */}
+            {/* 分类列表表格 */}
             <div style={{ padding: '24px' }}>
                 <Table
                     columns={columns}
@@ -184,6 +193,7 @@ export const AdminCategory = () => {
                 />
             </div>
 
+            {/* 新建分类模态框 */}
             <Modal
                 title="新建分类"
                 open={isModalVisible}

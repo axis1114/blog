@@ -2,12 +2,12 @@
 import { articleList, articleType, articleParamsType, } from '../../api/article';
 import { Row, Col, List, Typography, Space, Tag } from 'antd';
 import { EyeOutlined, LikeOutlined, MessageOutlined } from '@ant-design/icons';
-import { ArticleFilter } from '../../components/search/ArticleFilter';
+import { ArticleFilter } from '../../components/search/articlefilter';
 import { FriendLinkList } from '../../components/friendlink/friendlink';
 
 const { Title, Paragraph } = Typography;
 
-// 扩展 articleParamsType 接口来包含总数
+
 interface PaginationState extends articleParamsType {
     total: number;
 }
@@ -220,7 +220,7 @@ export const WebHome = () => {
                 />
             </Col>
 
-            <Col span={6} style={{ backgroundColor: '#ffffff', padding: '0px' }}>
+            <Col span={6} style={{ padding: '0px' }}>
                 <ArticleFilter
                     onSearch={(params) => {
                         setPagination(prev => ({

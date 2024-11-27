@@ -1,5 +1,4 @@
-﻿import { ReactNode } from "react";
-
+﻿
 import { createBrowserRouter, RouteObject } from "react-router-dom";
 import { WebIndex } from "@/view/frontend/index";
 import { WebHome } from "@/view/frontend/home";
@@ -16,11 +15,7 @@ import { AdminCategory } from "@/view/backend/category";
 import { AdminFriendlink } from "@/view/backend/friendlink";
 type BaseRouteType = {
   meta?: {
-    name?: string;
     auth?: string;
-    icon?: ReactNode;
-    label?: string;
-    hide?: boolean;
   };
 };
 

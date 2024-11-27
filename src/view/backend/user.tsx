@@ -5,7 +5,6 @@ import { userList, userCreate, userInfoType, userCreateType, userDelete } from '
 import { PlusOutlined } from '@ant-design/icons';
 
 export const AdminUser = () => {
-    // 状态管理
     const [users, setUsers] = useState<userInfoType[]>([]);
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -18,7 +17,7 @@ export const AdminUser = () => {
     const [editingUser, setEditingUser] = useState<userInfoType | null>(null);
     const [submitLoading, setSubmitLoading] = useState(false);
 
-    // 表格列定义
+
     const columns: ColumnsType<userInfoType> = [
         {
             title: '用户ID',
@@ -76,10 +75,10 @@ export const AdminUser = () => {
         },
     ];
 
-    // 获取用户列表
+
     const fetchUsers = async (page = 1, pageSize = 10) => {
-        setLoading(true);
         try {
+            setLoading(true);
             const response = await userList({
                 page,
                 page_size: pageSize,
@@ -89,20 +88,22 @@ export const AdminUser = () => {
                 setPagination({
                     ...pagination,
                     current: page,
-                    pageSize,
+                    pageSize: pageSize,
                     total: response.data.total,
                 });
             }
         } catch (error) {
             message.error('获取用户列表失败');
+            console.error("获取用户列表失败:", error);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    // 创建用户
+
     const handleCreateUser = async (values: userCreateType) => {
-        setSubmitLoading(true);
         try {
+            setSubmitLoading(true);
             const response = await userCreate(values);
             if (response.code === 2000) {
                 message.success('创建用户成功');
@@ -110,26 +111,27 @@ export const AdminUser = () => {
                 form.resetFields();
                 fetchUsers(pagination.current, pagination.pageSize);
             } else {
-                message.error(response.msg || '创建用户失败');
+                message.error(response.msg);
             }
         } catch (error) {
             message.error('创建用户失败');
+            console.error("创建用户失败:", error);
         } finally {
             setSubmitLoading(false);
         }
     };
 
-    // 表格分页变化
+
     const handleTableChange = (newPagination: any) => {
         fetchUsers(newPagination.current, newPagination.pageSize);
     };
 
-    // 初始加载
+
     useEffect(() => {
         fetchUsers();
     }, []);
 
-    // 打开弹框
+
     const showModal = (record?: userInfoType) => {
         setIsModalVisible(true);
         form.resetFields();
@@ -148,14 +150,14 @@ export const AdminUser = () => {
         }
     };
 
-    // 关闭弹框
+
     const handleCancel = () => {
         setIsModalVisible(false);
         form.resetFields();
         setEditingUser(null);
     };
 
-    // 删除用户
+
     const handleDelete = async (id: number) => {
         Modal.confirm({
             title: '确认删除',
@@ -169,10 +171,11 @@ export const AdminUser = () => {
                         message.success("删除成功");
                         fetchUsers(pagination.current, pagination.pageSize);
                     } else {
-                        message.error(response.msg || "删除失败");
+                        message.error(response.msg);
                     }
                 } catch (error) {
                     message.error("删除失败");
+                    console.error("删除失败:", error);
                 }
             }
         });
@@ -180,7 +183,7 @@ export const AdminUser = () => {
 
     return (
         <div style={{ minHeight: '100%' }}>
-            {/* 头部区域 */}
+
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -199,7 +202,7 @@ export const AdminUser = () => {
                 </Button>
             </div>
 
-            {/* 表格区域 */}
+
             <div style={{ padding: '24px' }}>
                 <Table
                     columns={columns}
@@ -211,7 +214,7 @@ export const AdminUser = () => {
                 />
             </div>
 
-            {/* 模态框 */}
+
             <Modal
                 title={editingUser ? "编辑用户" : "新建用户"}
                 open={isModalVisible}
@@ -263,7 +266,7 @@ export const AdminUser = () => {
                     <Form.Item
                         name="role"
                         label="角色"
-                        rules={[{ required: true, message: '请选择角色' }]}
+                        rules={[{ required: true, message: '请输入角色' }]}
                     >
                         <Input placeholder="请输入角色" />
                     </Form.Item>

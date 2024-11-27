@@ -9,9 +9,9 @@ import { RootState } from '@/store';
 const { TextArea } = Input;
 
 interface CommentAreaProps {
-    comments: commentType[];
-    onCommentSuccess: () => void;
-    className?: string;
+    comments: commentType[];        // 评论列表数据
+    onCommentSuccess: () => void;   // 评论成功后的回调函数
+    className?: string;             // 可选的样式类名
 }
 
 export const CommentArea = ({
@@ -46,19 +46,24 @@ export const CommentArea = ({
             return;
         }
 
-        setSubmitting(true);
         try {
-            await commentCreate({
+            setSubmitting(true);
+            const res = await commentCreate({
                 content: values.content,
                 article_id: parseInt(articleId),
                 parent_comment_id: replyTo?.id
             });
-            message.success('评论发表成功');
-            form.resetFields();
-            setReplyTo(null);
-            onCommentSuccess?.();
+            if (res.code === 2000) {
+                message.success('评论发表成功');
+                form.resetFields();
+                setReplyTo(null);
+                onCommentSuccess?.();
+            } else {
+                message.error(res.msg);
+            }
         } catch (error) {
             message.error('评论发表失败');
+            console.error('评论发表失败:', error);
         } finally {
             setSubmitting(false);
         }

@@ -16,7 +16,7 @@ export const App = () => {
 
   if (!isInitialized) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80 z-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-white/80 z-50">
         <Spin size="large" className="scale-150" />
       </div>
     );
