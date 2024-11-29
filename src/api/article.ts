@@ -27,7 +27,7 @@ export interface articleParamsType extends paramsType {
 }
 
 export function articleList(
-  params: articleParamsType
+  params?: articleParamsType
 ): Promise<baseResponse<listDataType<articleType>>> {
   return useAxios.get("/api/article/list", { params: { ...params } });
 }

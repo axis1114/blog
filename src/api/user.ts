@@ -46,8 +46,10 @@ export interface userCreateType {
   role: string;
 }
 
-export function userCreate(req: userCreateType): Promise<baseResponse<string>> {
-  return useAxios.post("/api/user", req);
+export function userCreate(
+  data: userCreateType
+): Promise<baseResponse<string>> {
+  return useAxios.post("/api/user", data);
 }
 
 export function userDelete(id: number): Promise<baseResponse<string>> {

@@ -7,13 +7,13 @@
 
 /* 自定义滚动条样式 */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgb(203, 203, 203);
-  border-radius: 5px;
+  border-radius: 10px;
 }
 
 @tailwind base;

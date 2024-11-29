@@ -5,9 +5,9 @@ export interface categoryCreateType {
 }
 
 export function categoryCreate(
-  req: categoryCreateType
+  data: categoryCreateType
 ): Promise<baseResponse<string>> {
-  return useAxios.post("/api/category", req);
+  return useAxios.post("/api/category", data);
 }
 
 export interface categoryType {

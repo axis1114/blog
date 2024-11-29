@@ -6,9 +6,9 @@ export interface friendlinkCreateType {
 }
 
 export function friendlinkCreate(
-  req: friendlinkCreateType
+  data: friendlinkCreateType
 ): Promise<baseResponse<string>> {
-  return useAxios.post("/api/friendlink", req);
+  return useAxios.post("/api/friendlink", data);
 }
 
 export interface friendlinkType {

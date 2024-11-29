@@ -34,9 +34,9 @@ export interface commentCreateType {
 }
 
 export function commentCreate(
-  req: commentCreateType
+  data: commentCreateType
 ): Promise<baseResponse<string>> {
-  return useAxios.post("/api/comment", req);
+  return useAxios.post("/api/comment", data);
 }
 
 export function commentDelete(id: number): Promise<baseResponse<string>> {

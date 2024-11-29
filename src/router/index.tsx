@@ -13,7 +13,7 @@ import { AdminComment } from "@/view/backend/comment";
 import { AdminCategory } from "@/view/backend/category";
 import { AdminFriendlink } from "@/view/backend/friendlink";
 import { AdminSetting } from "@/view/backend/setting";
-import { NotFound } from '@/components/NotFound/NotFound';
+import { NotFound } from '@/components/notfound/notfound';
 type BaseRouteType = {
   meta?: {
     auth?: string;

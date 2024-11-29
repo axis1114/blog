@@ -30,7 +30,7 @@ export const ArticleSearch = () => {
     };
 
     // 处理搜索建议选择，跳转到文章详情
-    const handleSelect = (value: string, option: any) => {
+    const handleSelect = (_: string, option: any) => {
         window.location.href = `/article/${option.key}`;
     };
 
