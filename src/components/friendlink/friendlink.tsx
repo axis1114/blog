@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { Typography, message } from 'antd';
+import { message } from 'antd';
 import { friendlinkType, friendlinkList } from '../../api/friendlink';
 
 export const FriendLinkList = () => {
@@ -26,12 +26,9 @@ export const FriendLinkList = () => {
     return (
         <div className="bg-white">
             <div className="p-8">
-                <Typography.Title level={5} className="mb-8 text-xl font-semibold text-gray-800 flex items-center">
-                    <span className="mr-3 text-2xl">🔗</span>
-                    <span className="bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                        友情链接
-                    </span>
-                </Typography.Title>
+                <h5 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
+                    <span className="mr-2">🔗</span>友链
+                </h5>
                 <div className="flex flex-col gap-2">
                     {friendlinks.map((link) => (
                         <a
@@ -40,9 +37,8 @@ export const FriendLinkList = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-6 py-2 text-gray-600 w-full  
-                                     hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100
-                                     text-base font-medium transition-all duration-300
-                                     flex items-center gap-2 hover:shadow-sm"
+                                     text-base font-medium 
+                                     flex items-center gap-2"
                         >
                             {link.name}
                         </a>

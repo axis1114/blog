@@ -72,7 +72,7 @@ export const WebHome = () => {
                             loading={loading}
                             itemLayout="vertical"
                             dataSource={articles}
-                            className="bg-white border border-gray-100/80 hover:shadow-md transition-shadow duration-300"
+                            className="bg-white border border-gray-100/80"
                             pagination={{
                                 current: pagination.page,
                                 pageSize: pagination.page_size,
@@ -147,7 +147,7 @@ export const WebHome = () => {
                     </Col>
                     <Col span={5}>
                         <div className="space-y-8">
-                            <div className="bg-white shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow duration-300">
+                            <div className="bg-white shadow-sm border border-gray-100/80">
                                 <ArticleFilter
                                     onSearch={(params) => {
                                         setPagination(prev => ({
@@ -159,7 +159,7 @@ export const WebHome = () => {
                                     }}
                                 />
                             </div>
-                            <div className="bg-white shadow-sm border border-gray-100/80 hover:shadow-md transition-shadow duration-300">
+                            <div className="bg-white shadow-sm border border-gray-100/80">
                                 <FriendLinkList />
                             </div>
                         </div>
