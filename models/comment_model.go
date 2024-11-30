@@ -151,9 +151,7 @@ func CreateComment(comment *CommentModel) error {
 		return err
 	}
 
-	// 设置事务超时和重试逻辑
 	err = global.DB.Transaction(func(tx *gorm.DB) error {
-		// 使用 FOR UPDATE SKIP LOCKED 来避免死锁
 		if comment.ParentCommentID != nil {
 			var parentComment CommentModel
 			if err := tx.Set("gorm:query_option", "FOR UPDATE SKIP LOCKED").
@@ -162,12 +160,10 @@ func CreateComment(comment *CommentModel) error {
 			}
 		}
 
-		// 创建评论
 		if err := tx.Create(comment).Error; err != nil {
 			return err
 		}
 
-		// 更新父评论计数
 		if comment.ParentCommentID != nil {
 			return tx.Model(&CommentModel{}).
 				Where("id = ?", *comment.ParentCommentID).
@@ -178,7 +174,6 @@ func CreateComment(comment *CommentModel) error {
 	})
 
 	if err == nil {
-		// 异步清除缓存
 		go func() {
 			if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
 				global.Log.Error("清除评论缓存失败", zap.Error(err))

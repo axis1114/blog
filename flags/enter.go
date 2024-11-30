@@ -82,9 +82,12 @@ func Newflags() {
 			Action:  EsExport,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name: "index",
+					Name:  "index",
+					Usage: "索引名称",
+					Value: "article_index",
 				},
-			}},
+			},
+		},
 		{
 			Name:    "import-es",
 			Aliases: []string{"i-e"},
@@ -101,7 +104,7 @@ func Newflags() {
 		err := app.Run(os.Args)
 		if err != nil {
 			global.Log.Error("初始化命令失败", zap.Error(err))
-			return
+			os.Exit(1)
 		}
 		os.Exit(0)
 	}
