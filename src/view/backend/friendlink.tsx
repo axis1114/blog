@@ -26,7 +26,6 @@ export const AdminFriendlink = () => {
                 page,
                 page_size: pagination.page_size,
             });
-            console.log(res);
             if (res.code === 2000) {
                 setData(res.data.list);
                 setPagination({

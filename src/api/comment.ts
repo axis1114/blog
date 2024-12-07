@@ -29,7 +29,7 @@ export function commentList(
 
 export interface commentCreateType {
   content: string;
-  article_id: number;
+  article_id: string;
   parent_comment_id?: number;
 }
 

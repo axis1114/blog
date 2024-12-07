@@ -1,6 +1,6 @@
 ﻿import { List, Button, Form, Input, message } from 'antd';
 import { Comment } from '@ant-design/compatible';
-import { commentType, commentCreate } from '../../api/comment';
+import { commentType, commentCreate, commentDelete } from '../../api/comment';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -28,6 +28,10 @@ export const CommentArea = ({
     // 获取登录状态
     const isLoggedIn = useSelector((state: RootState) => state.web.user.isLogin);
 
+    // 获取用户角色信息
+    const userRole = useSelector((state: RootState) => state.web.user.userInfo?.role);
+    const isAdmin = userRole === 'admin';
+
     // 检查登录状态
     const checkLogin = () => {
         if (!isLoggedIn) {
@@ -48,16 +52,19 @@ export const CommentArea = ({
 
         try {
             setSubmitting(true);
+            // 添加防重复提交检查
+            if (submitting) return;
+
             const res = await commentCreate({
                 content: values.content,
-                article_id: parseInt(articleId),
+                article_id: articleId,
                 parent_comment_id: replyTo?.id
             });
             if (res.code === 2000) {
                 message.success('评论发表成功');
                 form.resetFields();
                 setReplyTo(null);
-                onCommentSuccess?.();
+                if (onCommentSuccess) onCommentSuccess();
             } else {
                 message.error(res.msg);
             }
@@ -83,6 +90,23 @@ export const CommentArea = ({
         });
     };
 
+    const handleDelete = async (commentId: number) => {
+        if (!checkLogin()) return;
+        
+        try {
+            const res = await commentDelete(commentId);
+            if (res.code === 2000) {
+                message.success('评论删除成功');
+                onCommentSuccess?.();
+            } else {
+                message.error(res.msg);
+            }
+        } catch (error) {
+            message.error('删除评论失败');
+            console.error('删除评论失败:', error);
+        }
+    };
+
     const renderComment = (comment: commentType, index: number) => (
         <Comment
             key={`${comment.id}-${index}`}
@@ -96,7 +120,7 @@ export const CommentArea = ({
                     <div className="text-slate-700 text-base leading-relaxed">
                         {comment.content}
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 space-x-4">
                         <Button
                             type="link"
                             className="text-indigo-600 hover:text-indigo-800 p-0 font-medium transition-colors"
@@ -104,6 +128,16 @@ export const CommentArea = ({
                         >
                             回复
                         </Button>
+                        {/* 只有管理员可以看到删除按钮 */}
+                        {isAdmin && (
+                            <Button
+                                type="link"
+                                className="text-red-600 hover:text-red-800 p-0 font-medium transition-colors"
+                                onClick={() => handleDelete(comment.id)}
+                            >
+                                删除
+                            </Button>
+                        )}
                     </div>
                 </div>
             }
