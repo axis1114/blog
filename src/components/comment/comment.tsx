@@ -12,17 +12,18 @@ interface CommentAreaProps {
     comments: commentType[];        // 评论列表数据
     onCommentSuccess: () => void;   // 评论成功后的回调函数
     className?: string;             // 可选的样式类名
+    articleId?: string;          // 添加这个属性
 }
 
 export const CommentArea = ({
     comments,
     onCommentSuccess,
-    className
+    className,
+    articleId: propArticleId  // 添加这个参数
 }: CommentAreaProps) => {
     const [form] = Form.useForm();
     const [submitting, setSubmitting] = useState(false);
     const [replyTo, setReplyTo] = useState<{ id: number; name: string } | null>(null);
-    const { id: articleId } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
     // 获取登录状态
@@ -31,6 +32,10 @@ export const CommentArea = ({
     // 获取用户角色信息
     const userRole = useSelector((state: RootState) => state.web.user.userInfo?.role);
     const isAdmin = userRole === 'admin';
+
+    // 修改文章 ID 的获取方式
+    const { id: routeArticleId } = useParams<{ id: string }>();
+    const articleId = propArticleId || routeArticleId;  // 优先使用 props 传入的 ID
 
     // 检查登录状态
     const checkLogin = () => {
@@ -52,19 +57,16 @@ export const CommentArea = ({
 
         try {
             setSubmitting(true);
-            // 添加防重复提交检查
-            if (submitting) return;
-
             const res = await commentCreate({
                 content: values.content,
-                article_id: articleId,
+                article_id: articleId,  // 使用更新后的 articleId
                 parent_comment_id: replyTo?.id
             });
             if (res.code === 2000) {
                 message.success('评论发表成功');
                 form.resetFields();
                 setReplyTo(null);
-                if (onCommentSuccess) onCommentSuccess();
+                onCommentSuccess?.();
             } else {
                 message.error(res.msg);
             }

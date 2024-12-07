@@ -154,6 +154,7 @@ export const AdminComment = () => {
                     comments={comments}
                     onCommentSuccess={fetchComments}
                     className="h-full overflow-y-auto"
+                    articleId={selectedArticleId}
                 />}
             </Col>
         </Row>
