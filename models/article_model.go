@@ -123,7 +123,7 @@ func (s *ArticleService) CreateIndex() error {
 	if err != nil {
 		return fmt.Errorf("创建索引失败: %w", err)
 	}
-
+	global.Log.Info("创建索引成功")
 	return nil
 }
 

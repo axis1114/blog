@@ -36,7 +36,7 @@ func (cm *Comment) CommentCreate(c *gin.Context) {
 	// 4. 创建评论
 	if err := models.CreateComment(comment); err != nil {
 		global.Log.Error("创建评论失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		res.FailWithMsg(c, res.CodeInternalError, err.Error())
 		return
 	}
 

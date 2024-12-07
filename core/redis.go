@@ -16,9 +16,10 @@ func InitRedis() *redis.Client {
 		DB:       redisConf.DB,
 		PoolSize: redisConf.PoolSize,
 	})
-	_, err := rdb.Ping(context.Background()).Result()
+	res, err := rdb.Ping(context.Background()).Result()
 	if err != nil {
 		global.Log.Fatal("初始化Redis失败", zap.Error(err))
 	}
+	global.Log.Info("redis连接成功", zap.Any("res", res))
 	return rdb
 }

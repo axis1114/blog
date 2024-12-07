@@ -63,5 +63,6 @@ func InitGorm() *gorm.DB {
 	sqlDB.SetMaxOpenConns(global.Config.Mysql.MaxOpenConns)
 	// 连接最大复用时间，不能超过mysql的wait_timeout
 	sqlDB.SetConnMaxLifetime(time.Hour * 4)
+	global.Log.Info("mysql连接成功")
 	return db
 }

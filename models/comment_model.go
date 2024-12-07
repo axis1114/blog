@@ -77,10 +77,6 @@ func GetArticleComments(articleID string) ([]*CommentModel, error) {
 	if err := global.DB.Model(&CommentModel{}).
 		Where("article_id = ?", articleID).
 		Preload("User").
-		Preload("SubComments", func(db *gorm.DB) *gorm.DB {
-			return db.Order("created_at ASC")
-		}).
-		Preload("SubComments.User").
 		Order("created_at DESC").
 		Find(&comments).Error; err != nil {
 		return nil, err
@@ -103,6 +99,8 @@ func buildCommentTree(comments []*CommentModel) []*CommentModel {
 
 	// 建立查找映射
 	for _, comment := range comments {
+		// 确保 SubComments 为空，避免重复
+		comment.SubComments = []*CommentModel{}
 		commentMap[comment.ID] = comment
 	}
 
@@ -116,19 +114,6 @@ func buildCommentTree(comments []*CommentModel) []*CommentModel {
 			}
 		}
 	}
-
-	// 递归构建子评论树
-	var buildSubTree func(comments []*CommentModel)
-	buildSubTree = func(comments []*CommentModel) {
-		for _, comment := range comments {
-			if subComments, exists := commentMap[comment.ID]; exists {
-				comment.SubComments = subComments.SubComments
-				buildSubTree(comment.SubComments)
-			}
-		}
-	}
-
-	buildSubTree(rootComments)
 
 	return rootComments
 }
@@ -304,7 +289,7 @@ func canUserComment(userID uint) error {
 
 	// 如果是第一次评论，设置过期时间
 	if count == 1 {
-		global.Redis.Expire(ctx, key, time.Minute)
+		global.Redis.Expire(ctx, key, time.Second*10)
 	}
 
 	if count > CommentLimitPerMinute {
@@ -327,17 +312,6 @@ func validateAndFilterComment(comment *CommentModel) error {
 	return nil
 }
 
-func updateParentCommentCount(tx *gorm.DB, parentCommentID *uint) error {
-	if parentCommentID == nil {
-		return nil
-	}
-
-	// 直接使用计数器更新，避免查询
-	return tx.Model(&CommentModel{}).
-		Where("id = ?", *parentCommentID).
-		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
-		Error
-}
 
 // 从Redis获取评论缓存
 func getCommentsFromRedis(key string) ([]*CommentModel, error) {

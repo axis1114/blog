@@ -1,0 +1,54 @@
+version: '3'
+services:
+  es:
+    image: "elasticsearch:8.9.0"
+    ports:
+      - "127.0.0.1:9200:9200"
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - cluster.name=docker-cluster
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./es/data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: "redis:5.0.7"
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: ["redis-server", "--requirepass", "redis"]
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+  mysql:
+    image: mysql:8.0.32-debian
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: blog
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./mysql/conf:/etc/mysql/conf.d
+      - ./mysql/datadir:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
