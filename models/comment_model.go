@@ -63,49 +63,29 @@ func init() {
 	//sensitiveFilter.AddWord("敏感词1", "敏感词2")
 }
 
-func GetArticleComments(articleID string) ([]*CommentModel, error) {
-	cacheKey := fmt.Sprintf("%s:article:%s", CommentCacheKeyPrefix, articleID)
-
-	// 尝试从Redis获取缓存
-	rediscomments, err := getCommentsFromRedis(cacheKey)
-	if err == nil {
-		return rediscomments, nil
-	}
-
-	// 缓存未命中,从数据库查询
-	var comments []*CommentModel
+// GetArticleCommentsWithTree 获取文章的所有评论（树形结构）
+func GetArticleCommentsWithTree(articleID string) ([]*CommentModel, error) {
+	// 1. 获取所有评论
+	var allComments []*CommentModel
 	if err := global.DB.Model(&CommentModel{}).
 		Where("article_id = ?", articleID).
 		Preload("User").
 		Order("created_at DESC").
-		Find(&comments).Error; err != nil {
-		return nil, err
+		Find(&allComments).Error; err != nil {
+		return nil, fmt.Errorf("获取评论失败: %w", err)
 	}
 
-	// 构建评论树
-	result := buildCommentTree(comments)
-
-	// 缓存到Redis
-	if err := cacheCommentsToRedis(cacheKey, result); err != nil {
-		global.Log.Error("缓存评论失败", zap.Error(err))
-	}
-
-	return result, nil
-}
-
-func buildCommentTree(comments []*CommentModel) []*CommentModel {
+	// 2. 构建评论树
 	commentMap := make(map[uint]*CommentModel)
 	var rootComments []*CommentModel
 
-	// 建立查找映射
-	for _, comment := range comments {
-		// 确保 SubComments 为空，避免重复
-		comment.SubComments = []*CommentModel{}
+	// 建立映射关系
+	for _, comment := range allComments {
 		commentMap[comment.ID] = comment
 	}
 
-	// 构建父子关系
-	for _, comment := range comments {
+	// 构建树形结构
+	for _, comment := range allComments {
 		if comment.ParentCommentID == nil {
 			rootComments = append(rootComments, comment)
 		} else {
@@ -115,15 +95,7 @@ func buildCommentTree(comments []*CommentModel) []*CommentModel {
 		}
 	}
 
-	return rootComments
-}
-
-func GetAllSubComments(commentID uint) ([]CommentModel, error) {
-	var allComments []CommentModel
-	if err := global.DB.Preload("User").Where("parent_comment_id = ?", commentID).Find(&allComments).Error; err != nil {
-		return nil, err
-	}
-	return allComments, nil
+	return rootComments, nil
 }
 
 func CreateComment(comment *CommentModel) error {
@@ -311,7 +283,6 @@ func validateAndFilterComment(comment *CommentModel) error {
 	comment.Content = filteredContent
 	return nil
 }
-
 
 // 从Redis获取评论缓存
 func getCommentsFromRedis(key string) ([]*CommentModel, error) {

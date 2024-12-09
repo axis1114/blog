@@ -22,7 +22,7 @@ func (cm *Comment) CommentList(c *gin.Context) {
 		return
 	}
 
-	comments, err := models.GetArticleComments(req.ArticleID)
+	comments, err := models.GetArticleCommentsWithTree(req.ArticleID)
 	if err != nil {
 		global.Log.Error("获取评论失败", zap.Error(err))
 		res.Fail(c, res.CodeInternalError)
