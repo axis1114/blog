@@ -411,6 +411,7 @@ export const ArticleDetail = () => {
         try {
             const res = await commentList({ article_id: id });
             if (res.code === 2000) {
+                console.log(res.data);
                 setComments(res.data);
             } else {
                 message.error(res.msg);

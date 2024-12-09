@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 
-import { Table, Button, Modal, Form, Input, message, Space } from 'antd';
+import { Table, Button, Modal, Form, Input, message, Space, Select } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import MdEditor from 'react-markdown-editor-lite';
 import MarkdownIt from "markdown-it";
@@ -8,6 +8,7 @@ import "react-markdown-editor-lite/lib/index.css";
 import { imageList, imageType } from '@/api/image';
 import { articleType, articleList, articleDelete, articleUpdate, articleCreate } from '@/api/article';
 import { ColumnsType } from 'antd/es/table';
+import { categoryList, categoryType } from '@/api/category';
 
 const mdParser = new MarkdownIt();
 
@@ -26,6 +27,8 @@ export const AdminArticle = () => {
     const [images, setImages] = useState<imageType[]>([]);
     const [selectedCoverId, setSelectedCoverId] = useState<number>();
     const [editingArticle, setEditingArticle] = useState<articleType | null>(null);
+    const [categories, setCategories] = useState<categoryType[]>([]);
+
     // 获取文章列表
     const fetchData = async (page = 1) => {
         try {
@@ -121,9 +124,26 @@ export const AdminArticle = () => {
         }
     };
 
+    // 获取分类列表
+    const fetchCategories = async () => {
+        try {
+            const res = await categoryList();
+            if (res.code === 2000) {
+                setCategories(res.data.list);
+            } else {
+                message.error('获取分类列表失败');
+            }
+        } catch (error) {
+            console.error('获取分类列表失败:', error);
+            message.error('获取分类列表失败');
+        }
+    };
+
     // 在组件加载时获取图片列表
     useEffect(() => {
+        fetchData();
         fetchImages();
+        fetchCategories();
     }, []);
 
     // 选择封面图片
@@ -222,10 +242,6 @@ export const AdminArticle = () => {
         },
     ];
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
     return (
         <div style={{ minHeight: '100%' }}>
             {/* 头部区域 */}
@@ -306,10 +322,15 @@ export const AdminArticle = () => {
                         name="category"
                         rules={[
                             { required: true, message: "请选择文章分类" },
-                            { max: 50, message: "分类名称最多50个字符" }
                         ]}
                     >
-                        <Input placeholder='请输入文章分类' />
+                        <Select
+                            placeholder='请选择文章分类'
+                            options={categories.map(cat => ({
+                                label: cat.name,
+                                value: cat.name
+                            }))}
+                        />
                     </Form.Item>
 
                     {/* 封面选择区域 */}
