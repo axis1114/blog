@@ -1,81 +1,135 @@
-tmp
-.env
-gohub
-.DS_Store
-.history
-
-# Golang #
-######################
-# `go test -c` 生成的二进制文件
-*.test
-# go coverage 工具
-*.out
-*.prof
-*.cgo1.go
-*.cgo2.c
-_cgo_defun.c
-_cgo_gotypes.go
-_cgo_export.*
-
-# 编译文件 #
-###################
-*.com
-*.class
-*.dll
+# 二进制文件和可执行文件 #
+##########################
+/main                  # 默认的二进制文件名
 *.exe
-*.o
+*.exe~
+*.dll
 *.so
+*.dylib
+*.test
+*.out
 
-# 压缩包 #
-############
-# Git 自带压缩,如果这些压缩包里有代码,建议解压后 commit
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
+# Gin项目特定文件 #
+##########################
+tmp/                   # 临时文件目录
+/uploads/*            # 上传文件目录
+/storage/*            # 存储文件目录
+/public/uploads/*     # 公共上传目录
+/runtime/*            # 运行时文件
 
-# 日志文件和数据库 #
-######################
-*.log
-*.sqlite
+# 配置文件 #
+##########################
+.env
+.env.*
+*.local.yaml
+*.local.yml
+config.local.*
+*.local.toml
+.air.toml             # Air 热重载配置
+
+# Go语言特定 #
+##########################
+go.work
+*.test
+*.out
+/vendor/
+.idea/
+.vscode/
+__debug_bin
+.DS_Store
+coverage.txt
+*.syso
+
+# 数据库文件 #
+##########################
 *.db
+*.sqlite
+*.sqlite3
+/data/
 
-# 临时文件 #
-######################
-tmp/
+# 日志文件 #
+##########################
+/logs/
+*.log
+*.log.*
+debug.log
+
+# API文档 #
+##########################
+/docs/swagger/*        # Swagger文档
+/api/docs/*           # API文档
+swagger.json
+swagger.yaml
+
+# 缓存和临时文件 #
+##########################
+.cache/
+*.cache
+*.bak
+*.swp
+*.swo
+*~
 .tmp/
 
-# 系统生成文件 #
-######################
+# 证书和密钥 #
+##########################
+*.pem
+*.cert
+*.key
+*.crt
+*.csr
+/ssl/
+
+# 依赖管理 #
+##########################
+go.sum.bak
+
+# 前端资源（如果项目包含前端） #
+##########################
+/node_modules/
+/dist/
+/build/
+.sass-cache/
+*.css.map
+*.js.map
+
+# 测试文件 #
+##########################
+/coverage/
+/mocks/
+.pytest_cache/
+test/tmp/
+test.db
+
+# IDE和编辑器 #
+##########################
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+*.code-workspace
+
+# 系统文件 #
+##########################
+.DS_Store
 .DS_Store?
-.AppleDouble
-.LSOverride
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
-.TemporaryItems
-.fseventsd
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+.directory
 
-# IDE 和编辑器 #
-######################
-.idea/
-/go_build_*
-out/
-.vscode/
-.vscode/settings.json
-*.sublime*
-__debug_bin
-.project
+# Docker相关 #
+##########################
+.docker/data/
+docker-compose.override.yml
 
-# 前端工具链 #
-######################
-.sass-cache/*
-node_modules/
+# 监控和性能分析 #
+##########################
+/monitor/
+*.prof
+*.trace
+/metrics/
