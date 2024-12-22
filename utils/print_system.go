@@ -4,6 +4,7 @@ import (
 	"blog/global"
 )
 
+// PrintSystem 打印系统信息
 func PrintSystem() {
 	ip := global.Config.System.Host
 	port := global.Config.System.Port

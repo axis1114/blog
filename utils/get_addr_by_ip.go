@@ -8,12 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetAddrByGin 获取客户端IP地址
 func GetAddrByGin(c *gin.Context) (addr string) {
 	ip := c.ClientIP()
 	addr = GetAddrByIp(ip)
 	return addr
 }
 
+// GetAddrByIp 获取IP地址
 func GetAddrByIp(ip string) string {
 	parseIP := net.ParseIP(ip)
 	if IsIntranetIP(parseIP) {
@@ -31,6 +33,7 @@ func GetAddrByIp(ip string) string {
 	return fmt.Sprintf("%s-%s", province, city)
 }
 
+// IsIntranetIP 判断IP是否为内网IP
 func IsIntranetIP(ip net.IP) bool {
 	if ip.IsLoopback() {
 		return true

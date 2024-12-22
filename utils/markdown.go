@@ -17,12 +17,6 @@ var (
 )
 
 // ConvertMarkdownToHTML 将 Markdown 内容转换为 HTML 并移除可能的恶意脚本标签
-// 参数：
-//   - content: Markdown 格式的字符串
-//
-// 返回：
-//   - string: 转换后的 HTML 内容
-//   - error: 转换过程中的错误信息
 func ConvertMarkdownToHTML(content string) (string, error) {
 	if strings.TrimSpace(content) == "" {
 		return "", ErrEmptyContent
@@ -56,12 +50,6 @@ func ConvertMarkdownToHTML(content string) (string, error) {
 }
 
 // ConvertHTMLToMarkdown 将 HTML 内容转换回 Markdown 格式
-// 参数：
-//   - htmlContent: HTML 格式的字符串
-//
-// 返回：
-//   - string: 转换后的 Markdown 内容
-//   - error: 转换过程中的错误信息
 func ConvertHTMLToMarkdown(htmlContent string) (string, error) {
 	if strings.TrimSpace(htmlContent) == "" {
 		return "", ErrEmptyContent

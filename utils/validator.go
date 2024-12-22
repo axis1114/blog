@@ -68,8 +68,6 @@ func InitTrans(locale string) error {
 }
 
 // Translate 翻译错误信息
-// @param err 错误信息
-// @return string 翻译后的错误信息
 func Translate(err error) string {
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		return validationErrors[0].Translate(trans)

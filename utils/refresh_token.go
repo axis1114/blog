@@ -9,7 +9,7 @@ import (
 	redis_ser "blog/service/redis"
 )
 
-// 通过 UserID 刷新 Access Token
+// RefreshAccessToken 通过 UserID 刷新 Access Token
 func RefreshAccessToken(accessToken string, userID uint) (string, error) {
 	// 从 Redis 获取对应的 refreshToken
 	key := redis_ser.RefreshToken + strconv.Itoa(int(userID))

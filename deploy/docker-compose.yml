@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   es:
     image: "elasticsearch:8.9.0"
@@ -51,4 +51,3 @@ services:
       resources:
         limits:
           memory: 128M
-

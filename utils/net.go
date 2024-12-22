@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// GetIPList 获取所有IP地址
 func GetIPList() (ipList []string) {
 	interfaces, err := net.Interfaces()
 	if err != nil {

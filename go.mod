@@ -20,11 +20,10 @@ require (
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/russross/blackfriday v1.6.0
 	github.com/spf13/viper v1.19.0
-	github.com/swaggo/files v1.0.1
-	github.com/swaggo/gin-swagger v1.6.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.25.0
+	golang.org/x/sync v0.7.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.11
 )
@@ -40,17 +39,12 @@ require (
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/swaggo/swag v1.8.12 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 	modernc.org/fileutil v1.0.0 // indirect
 )
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/PuerkitoBio/purell v1.1.1 // indirect
-	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
@@ -65,28 +59,21 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/jsonpointer v0.20.2 // indirect
-	github.com/go-openapi/jsonreference v0.19.6 // indirect
-	github.com/go-openapi/spec v0.20.4 // indirect
-	github.com/go-openapi/swag v0.22.8 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/qiniu/go-sdk/v7 v7.25.0
 	github.com/rakyll/statik v0.1.7 // indirect
@@ -111,7 +98,6 @@ require (
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	golang.org/x/tools v0.23.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
