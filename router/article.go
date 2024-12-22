@@ -8,7 +8,7 @@ import (
 func (router RouterGroup) ArticleRouter() {
 	articleApi := api.AppGroupApp.ArticleApi
 	articleRouter := router.Group("article")
-	articleRouter.GET("/:id", articleApi.ArticleDetail)
+	articleRouter.GET(":id", articleApi.ArticleDetail)
 	articleRouter.POST("", middleware.JwtAdmin(), articleApi.ArticleCreate)
 	articleRouter.GET("list", articleApi.ArticleList)
 	articleRouter.POST("delete", middleware.JwtAdmin(), articleApi.ArticleDelete)

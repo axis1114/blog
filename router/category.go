@@ -10,6 +10,5 @@ func (r *RouterGroup) CategoryRouter() {
 	categoryApi := api.AppGroupApp.CategoryApi
 	categoryRouter.POST("", middleware.JwtAdmin(), categoryApi.CategoryCreate)
 	categoryRouter.DELETE(":id", middleware.JwtAdmin(), categoryApi.CategoryDelete)
-	categoryRouter.GET("", categoryApi.CategoryList)
+	categoryRouter.GET("list", categoryApi.CategoryList)
 }
-	
