@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -10,7 +9,6 @@ import (
 	"strings"
 
 	"blog/global"
-	"blog/service/qiniu"
 	utils "blog/utils"
 
 	"go.uber.org/zap"
@@ -80,7 +78,7 @@ func (im *ImageModel) Upload(file *multipart.FileHeader) (res UploadResponse) {
 		return existingImage
 	}
 
-	// 4. 处理文件上传（本地或七牛云）
+	// 4. 处理文件上传
 	filePath, fileType, err := im.processUpload(file, byteData)
 	if err != nil {
 		res.Msg = err.Error()
@@ -135,20 +133,6 @@ func (im *ImageModel) processUpload(file *multipart.FileHeader, data []byte) (st
 	filePath := "/" + path.Join(basePath, fileName)
 	fileType := "local"
 
-	if global.Config.QiNiu.Enable {
-		uploader, err := qiniu.NewQiniuUploader(global.Config.QiNiu)
-		if err != nil {
-			return "", "", fmt.Errorf("七牛云初始化失败: %v", err)
-		}
-
-		qiniuPath, err := uploader.UploadImage(context.Background(), data, fileName, basePath)
-		if err != nil {
-			return "", "", fmt.Errorf("七牛云上传失败: %v", err)
-		}
-
-		return qiniuPath, "qiniu", nil
-	}
-
 	return filePath, fileType, nil
 }
 
@@ -171,19 +155,7 @@ func (im *ImageModel) BeforeDelete(tx *gorm.DB) error {
 				zap.String("path", im.Path),
 				zap.Error(err))
 		}
-	} else if im.Type == "qiniu" {
-		// 实现七牛云文件删除逻辑
-		if err := im.deleteFromQiNiu(); err != nil {
-			global.Log.Error("删除七牛云文件失败",
-				zap.String("path", im.Path),
-				zap.Error(err))
-		}
+	} else if im.Type == "online" {
 	}
-	return nil
-}
-
-// deleteFromQiNiu 新增七牛云文件删除方法
-func (im *ImageModel) deleteFromQiNiu() error {
-	// TODO: 实现七牛云文件删除逻辑
 	return nil
 }

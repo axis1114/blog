@@ -2,7 +2,7 @@ system:
   host: 0.0.0.0
   port: 8888
   env: dev
-  start_time: "2024-08-06"
+  start_time: "2024-12-22"
   machine_id: 1
 log:
   filename: "logs/server.log"
@@ -30,14 +30,6 @@ redis:
 es:
   host: 127.0.0.1
   port: 9200
-email:
-  host: smtp.qq.com
-  port: 465
-  user:
-  password:
-  default_from_email:
-  use_ssl: true
-  user_tls: false
 jwt:
   secret: "2024724"
   expires: 7
@@ -51,12 +43,3 @@ captcha:
 upload:
   size: 20
   path: uploads/images
-qi_niu:
-  enable: false
-  access_key: S6M8l99jbX9d_X5RkEGLfrLrdJJzL7V4nq-rHxiQ
-  secret_key: Ljva9E-_b-5TnU89iQ3tUIgujhWVKs8IWnaaUXgo
-  bucket: nsxz-blog-image
-  cdn: http://image.nsxz.fun/
-  zone: z0
-  prefix: "image"
-  size: 20

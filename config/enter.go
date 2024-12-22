@@ -9,12 +9,10 @@ type Config struct {
 	Redis   Redis   `mapstructure:"redis"`
 	Log     Log     `mapstructure:"log"`
 	System  System  `mapstructure:"system"`
-	Email   Email   `mapstructure:"email"`
 	Es      Es      `mapstructure:"es"`
 	Jwt     Jwt     `mapstructure:"jwt"`
 	Captcha Captcha `mapstructure:"captcha"`
 	Upload  Upload  `mapstructure:"upload"`
-	QiNiu   QiNiu   `mapstructure:"qi_niu"`
 }
 
 func (m Mysql) Dsn() string {

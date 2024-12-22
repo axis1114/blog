@@ -29,18 +29,9 @@ require (
 )
 
 require (
-	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/elastic/go-sysinfo v1.0.2 // indirect
-	github.com/elastic/go-windows v1.0.0 // indirect
-	github.com/gammazero/toposort v0.1.1 // indirect
-	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
-	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
-	modernc.org/fileutil v1.0.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
 require (
@@ -75,7 +66,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
-	github.com/qiniu/go-sdk/v7 v7.25.0
 	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
