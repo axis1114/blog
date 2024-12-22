@@ -24,7 +24,7 @@ func EsIndexCreate(c *cli.Context) (err error) {
 	var article models.ArticleService
 	err = article.CreateIndex()
 	if err != nil {
-		global.Log.Error("创建索引失败", zap.Error(err))
+		global.Log.Error("索引创建失败", zap.Error(err))
 		return err
 	}
 	return nil

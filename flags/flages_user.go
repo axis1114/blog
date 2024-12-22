@@ -22,7 +22,6 @@ func User(c *cli.Context) error {
 		userRole = ctypes.RoleAdmin
 	}
 
-	global.Log.Infof("创建用户nickname:%s,role:%s", nickName, string(userRole))
 	account, err := utils.GenerateID()
 	if err != nil {
 		global.Log.Error("生成account失败", zap.Error(err))

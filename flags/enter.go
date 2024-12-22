@@ -11,11 +11,10 @@ import (
 
 func Newflags() {
 	var app = cli.NewApp()
-	app.Name = "blog"
-	app.Usage = "blog"
+	app.Name = "溺水寻舟的博客"
 	app.Authors = []*cli.Author{
 		{
-			Name:  "Axios",
+			Name:  "溺水寻舟",
 			Email: "1790146932@qq.com",
 		},
 	}

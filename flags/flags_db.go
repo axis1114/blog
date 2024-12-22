@@ -5,7 +5,6 @@ import (
 	"blog/models"
 
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 func DB(c *cli.Context) (err error) {
@@ -17,9 +16,9 @@ func DB(c *cli.Context) (err error) {
 			&models.FriendLinkModel{},
 		)
 	if err != nil {
-		zap.L().Error("[ error ] 生成数据库表结构失败")
+		global.Log.Error("[ error ] 生成数据库表结构失败")
 		return nil
 	}
-	zap.L().Info("[ success ] 生成数据库表结构成功！")
+	global.Log.Info("[ success ] 生成数据库表结构成功！")
 	return nil
 }

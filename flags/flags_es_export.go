@@ -13,16 +13,31 @@ import (
 	"go.uber.org/zap"
 )
 
-func EsExport(c *cli.Context) (err error) {
+// EsExport 从 Elasticsearch 导出指定索引的数据到 JSON 文件
+// 参数 c *cli.Context 包含命令行参数，需要包含 "index" 参数指定要导出的索引名
+// 返回 error 如果在导出过程中发生错误
+func EsExport(c *cli.Context) error {
+	// 获取要导出的索引名
 	index := c.String("index")
-	res, err := global.Es.Search().Index(index).Query(&types.Query{
-		MatchAll: &types.MatchAllQuery{},
-	}).Do(context.Background())
-	if err != nil {
-		global.Log.Error("导出数据失败", zap.Error(err))
-		return err
+	if index == "" {
+		return fmt.Errorf("索引名不能为空")
 	}
 
+	// 查询指定索引的所有数据
+	res, err := global.Es.Search().
+		Index(index).
+		Query(&types.Query{
+			MatchAll: &types.MatchAllQuery{},
+		}).
+		Do(context.Background())
+	if err != nil {
+		global.Log.Error("查询 ES 数据失败",
+			zap.String("index", index),
+			zap.Error(err))
+		return fmt.Errorf("查询 ES 数据失败: %w", err)
+	}
+
+	// 构建导出数据结构
 	var data ESIndexResponse
 	data.Index = index
 	for _, hit := range res.Hits.Hits {
@@ -33,21 +48,40 @@ func EsExport(c *cli.Context) (err error) {
 		data.Data = append(data.Data, item)
 	}
 
+	// 生成导出文件名，格式：索引名_日期.json
 	fileName := fmt.Sprintf("%s_%s.json", index, time.Now().Format("20060102"))
-	file, _ := os.Create(fileName)
 
-	byteData, _ := json.Marshal(data)
-	_, err = file.Write(byteData)
+	// 创建并写入文件
+	file, err := os.Create(fileName)
 	if err != nil {
-		global.Log.Error("导出数据失败", zap.Error(err))
-		return err
+		global.Log.Error("创建导出文件失败",
+			zap.String("fileName", fileName),
+			zap.Error(err))
+		return fmt.Errorf("创建导出文件失败: %w", err)
 	}
-	err = file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("关闭文件失败: %w", cerr)
+		}
+	}()
+
+	// 将数据转换为 JSON 格式
+	byteData, err := json.Marshal(data)
 	if err != nil {
-		global.Log.Error("导出数据失败", zap.Error(err))
-		return err
+		global.Log.Error("序列化数据失败", zap.Error(err))
+		return fmt.Errorf("序列化数据失败: %w", err)
 	}
 
-	global.Log.Infof("索引 %s 导出成功  %s", index, fileName)
+	// 写入文件
+	if _, err = file.Write(byteData); err != nil {
+		global.Log.Error("写入文件失败",
+			zap.String("fileName", fileName),
+			zap.Error(err))
+		return fmt.Errorf("写入文件失败: %w", err)
+	}
+
+	global.Log.Info("数据导出成功",
+		zap.String("index", index),
+		zap.String("fileName", fileName))
 	return nil
 }
