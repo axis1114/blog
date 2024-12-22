@@ -1,15 +1,18 @@
 system:
   host: 0.0.0.0
   port: 8888
-  env: debug
+  env: dev
   start_time: "2024-08-06"
   machine_id: 1
 log:
-  level: "info"
-  filename: "server.log"
+  filename: "logs/server.log"
   max_size: 200
   max_age: 30
   max_backups: 7
+  level: "info"
+  format: "json"
+  buffer_size: 256v
+  compress: true
 mysql:
   host: 127.0.0.1
   port: 3306

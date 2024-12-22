@@ -11,7 +11,7 @@ import (
 func InitAddrDB() *geoip2.DBReader {
 	db, err := geoip2db.NewGeoipDbByStatik()
 	if err != nil {
-		global.Log.Fatal("初始化地址库失败", zap.Error(err))
+		global.Log.Error("地址库初始化失败", zap.Error(err))
 	}
 	return db
 }

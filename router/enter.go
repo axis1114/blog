@@ -18,7 +18,7 @@ func InitRouter() *gin.Engine {
 	//设置gin模式
 	gin.SetMode(global.Config.System.Env)
 	router := gin.New()
-	router.Use(core.GinLogger(), core.GinRecovery(true))
+	router.Use(core.GinMiddleware(), core.GinRecovery())
 	router.Use(utils.Cors())
 	//将指定目录下的文件提供给客户端
 	//"uploads" 是URL路径前缀，http.Dir("uploads")是实际文件系统s中存储文件的目录

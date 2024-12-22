@@ -1,8 +1,10 @@
 package core
 
 import (
+	"blog/config"
 	"blog/global"
-	"log"
+	"bytes"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -16,87 +18,177 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var lg *zap.Logger
-var sugarLogger *zap.SugaredLogger
+// NewLogger 创建新的日志管理器
+// 如果未提供配置，将使用默认配置
+func NewLogManager(config *config.Log) (*zap.SugaredLogger, error) {
+	// 使用默认配置（如果未提供）
+	if config == nil {
+		config = getDefaultConfig()
+	}
 
-func InitLog() *zap.SugaredLogger {
-	writeSyncer := getLogWriter(global.Config.Log.Filename,
-		global.Config.Log.MaxSize,
-		global.Config.Log.MaxBackups,
-		global.Config.Log.MaxAge)
-	encoder := getEncoder()
-	var l = new(zapcore.Level)
-	err := l.UnmarshalText([]byte(global.Config.Log.Level))
+	// 创建日志管理器实例
+	sugarLogger, err := initialize(config)
 	if err != nil {
-		log.Fatalf("UnmarshalText err:%v\n", err)
+		return nil, fmt.Errorf("failed to initialize logger: %v", err)
 	}
-	var core zapcore.Core
-	if global.Config.System.Env == "debug" {
-		// 进入开发模式，日志输出到终端
-		//创建一个控制台编码器 consoleEncoder，使用 zap.NewDevelopmentEncoderConfig() 创建开发者模式的编码器配置
-		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-		//使用 zapcore.NewTee() 函数创建一个复合的核心。这个函数接受多个日志核心，并将它们组合成一个
-		core = zapcore.NewTee(
-			zapcore.NewCore(encoder, writeSyncer, l),
-			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), zapcore.DebugLevel),
-		)
-	} else {
-		core = zapcore.NewCore(encoder, writeSyncer, l)
-	}
-	lg = zap.New(core, zap.AddCaller())
-	zap.ReplaceGlobals(lg)
-	sugarLogger = lg.Sugar()
-	return sugarLogger
+
+	return sugarLogger, nil
 }
 
+// initialize 初始化日志管理器
+// 配置日志输出、编码方式和日志级别
+func initialize(config *config.Log) (*zap.SugaredLogger, error) {
+	// 获取日志写入器
+	writeSyncer := getLogWriter(
+		config.Filename,
+		config.MaxSize,
+		config.MaxBackups,
+		config.MaxAge,
+	)
+
+	// 获取日志编码器
+	encoder := getEncoder()
+
+	// 设置日志级别
+	var level zapcore.Level
+	if err := level.UnmarshalText([]byte(config.Level)); err != nil {
+		return nil, fmt.Errorf("invalid log level: %v", err)
+	}
+
+	// 根据环境配置日志核心
+	var core zapcore.Core
+	if global.Config.System.Env == "debug" {
+		// 调试环境：同时输出到控制台和文件
+		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+		core = zapcore.NewTee(
+			zapcore.NewCore(encoder, writeSyncer, level),                    // 文件输出
+			zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), level), // 控制台输出
+		)
+	} else {
+		// 生产环境：只输出到文件
+		core = zapcore.NewCore(encoder, writeSyncer, level)
+	}
+
+	// 创建日志记录器
+	logger := zap.New(
+		core,
+		zap.AddCaller(),                       // 添加调用者信息
+		zap.AddStacktrace(zapcore.ErrorLevel), // 错误时添加堆栈跟踪
+	)
+	sugarLogger := logger.Sugar()
+	zap.ReplaceGlobals(logger)
+
+	return sugarLogger, nil
+}
+
+// getEncoder 获取日志编码器
+// 配置日志的输出格式
 func getEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
+
+	// 自定义时间格式
 	encoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006-01-02 15:04:05"))
 	}
+
+	// 设置日志字段名
 	encoderConfig.TimeKey = "time"
 	encoderConfig.MessageKey = "msg"
 	encoderConfig.EncodeLevel = zapcore.LowercaseLevelEncoder
+
+	// 自定义调用者格式
 	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(caller.TrimmedPath())
 	}
+
 	return zapcore.NewJSONEncoder(encoderConfig)
 }
 
+// getLogWriter 获取日志写入器
+// 配置日志的输出位置和轮转策略
 func getLogWriter(filename string, maxSize, maxBackup, maxAge int) zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
-		Filename:   filename,
-		MaxSize:    maxSize,
-		MaxBackups: maxBackup,
-		MaxAge:     maxAge,
+		Filename:   filename,  // 日志文件路径
+		MaxSize:    maxSize,   // 文件大小限制
+		MaxBackups: maxBackup, // 备份数量
+		MaxAge:     maxAge,    // 保留天数
+		Compress:   true,      // 是否压缩
 	}
 	return zapcore.AddSync(lumberJackLogger)
 }
 
-// GinLogger 接收gin框架默认的日志
-func GinLogger() gin.HandlerFunc {
+// getDefaultConfig 获取默认日志配置
+func getDefaultConfig() *config.Log {
+	return &config.Log{
+		Filename:   "./logs/app.log",
+		MaxSize:    100,    // 100MB
+		MaxBackups: 7,      // 保留7个备份
+		MaxAge:     30,     // 保留30天
+		Level:      "info", // 默认info级别
+		Format:     "json", // 默认json格式
+		BufferSize: 256,    // 256KB缓冲区
+		Compress:   true,   // 启用压缩
+	}
+}
+
+// GinMiddleware Gin框架的日志中间件
+func GinMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 记录开始时间
 		start := time.Now()
+
+		// 获取请求信息
 		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+
+		// 记录请求体大小
+		reqSize := c.Request.ContentLength
+
+		// 包装ResponseWriter以获取响应大小
+		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+		c.Writer = blw
+
+		// 处理请求
 		c.Next()
 
-		lg.Info("access_log",
+		// 计算耗时
+		cost := time.Since(start)
+
+		// 记录访问日志
+		global.Log.Info("access_log",
 			zap.Int("status", c.Writer.Status()),
 			zap.String("method", c.Request.Method),
 			zap.String("path", path),
+			zap.String("query", query),
 			zap.String("ip", c.ClientIP()),
-			zap.Duration("resp_time", time.Since(start)),
+			zap.String("user-agent", c.Request.UserAgent()),
+			zap.Duration("cost", cost),
+			zap.Int64("request_size", reqSize),
+			zap.Int("response_size", blw.body.Len()),
+			zap.String("refer", c.Request.Referer()),
 		)
 	}
 }
 
-// GinRecovery recover掉项目可能出现的panic，并使用zap记录相关日志
-func GinRecovery(stack bool) gin.HandlerFunc {
+// GinRecovery Gin框架的错误恢复中间件
+func GinRecovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
+				// 检查是否是客户端断开连接
 				if isBrokenPipe(err) {
-					lg.Error("client disconnected",
+					global.Log.Warn("client_disconnected",
+						zap.Any("error", err),
+						zap.String("path", c.Request.URL.Path),
+						zap.String("ip", c.ClientIP()),
+					)
+					c.Abort()
+					return
+				}
+
+				// 检查上下文是否已取消
+				if c.Request.Context().Err() != nil {
+					global.Log.Warn("request_canceled",
 						zap.Any("error", err),
 						zap.String("path", c.Request.URL.Path),
 					)
@@ -104,26 +196,49 @@ func GinRecovery(stack bool) gin.HandlerFunc {
 					return
 				}
 
-				lg.Error("system_error",
+				// 记录系统错误
+				stack := string(debug.Stack())
+				global.Log.Error("system_error",
 					zap.Any("error", err),
+					zap.String("stack", stack),
 					zap.String("path", c.Request.URL.Path),
 					zap.String("method", c.Request.Method),
 					zap.String("ip", c.ClientIP()),
-					zap.String("stack", string(debug.Stack())),
+					zap.String("user_agent", c.Request.UserAgent()),
+					zap.String("query", c.Request.URL.RawQuery),
 				)
-				c.AbortWithStatus(http.StatusInternalServerError)
+
+				// 返回500错误
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"code":    500,
+					"message": "Internal Server Error",
+				})
 			}
 		}()
 		c.Next()
 	}
 }
 
+// bodyLogWriter 用于记录响应体大小
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+// Write 实现 ResponseWriter 接口
+func (w *bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+// isBrokenPipe 检查是否是连接中断错误
 func isBrokenPipe(err interface{}) bool {
 	if ne, ok := err.(*net.OpError); ok {
 		if se, ok := ne.Err.(*os.SyscallError); ok {
 			errMsg := strings.ToLower(se.Error())
-			return strings.Contains(errMsg, "broken pipe") || 
-				   strings.Contains(errMsg, "connection reset by peer")
+			return strings.Contains(errMsg, "broken pipe") ||
+				strings.Contains(errMsg, "connection reset by peer") ||
+				strings.Contains(errMsg, "protocol wrong type for socket")
 		}
 	}
 	return false
