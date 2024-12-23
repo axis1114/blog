@@ -16,12 +16,12 @@ type StandardResponse struct {
 
 // PageData 分页数据结构
 type PageData[T any] struct {
-	List       T     `json:"list"`       // 数据列表
-	Total      int64 `json:"total"`      // 总记录数
-	Page       int   `json:"page"`       // 当前页码
-	PageSize   int   `json:"pageSize"`   // 每页大小
-	TotalPages int   `json:"totalPages"` // 总页数
-	HasMore    bool  `json:"hasMore"`    // 是否有更多数据
+	List       T     `json:"list"`        // 数据列表
+	Total      int64 `json:"total"`       // 总记录数
+	Page       int   `json:"page"`        // 当前页码
+	PageSize   int   `json:"page_size"`   // 每页大小
+	TotalPages int   `json:"total_pages"` // 总页数
+	HasMore    bool  `json:"has_more"`    // 是否有更多数据
 }
 
 // 成功响应

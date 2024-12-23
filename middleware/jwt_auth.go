@@ -25,7 +25,7 @@ func JwtAuth() gin.HandlerFunc {
 		// 解析 Token
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
-			if err.Error() == "token已过期" {
+			if err.Error() == "token已过期" && claims != nil {
 				// Token 已过期，尝试刷新
 				newAccessToken, refreshErr := utils.RefreshAccessToken(tokenString, claims.UserID)
 				if refreshErr != nil || newAccessToken == "" {
