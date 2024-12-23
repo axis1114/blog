@@ -26,7 +26,7 @@ export const AdminFriendlink = () => {
                 page,
                 page_size: pagination.page_size,
             });
-            if (res.code === 2000) {
+            if (res.code === 0) {
                 setData(res.data.list);
                 setPagination({
                     ...pagination,
@@ -34,7 +34,7 @@ export const AdminFriendlink = () => {
                     total: res.data.total,
                 });
             } else {
-                message.error(res.msg);
+                message.error(res.message);
             }
         } catch (error) {
             message.error("获取友情链接列表失败");
@@ -54,11 +54,11 @@ export const AdminFriendlink = () => {
             onOk: async () => {
                 try {
                     const response = await friendlinkDelete(id);
-                    if (response.code === 2000) {
+                    if (response.code === 0) {
                         message.success("删除成功");
                         fetchData();
                     } else {
-                        message.error(response.msg);
+                        message.error(response.message);
                     }
                 } catch (error: any) {
                     message.error("删除失败，请稍后重试");
@@ -87,12 +87,12 @@ export const AdminFriendlink = () => {
             setSubmitLoading(true);
 
             const res = await friendlinkCreate(values);
-            if (res.code === 2000) {
+            if (res.code === 0) {
                 message.success("创建成功");
                 handleCancel();
                 fetchData();
             } else {
-                message.error(res.msg);
+                message.error(res.message);
             }
         } catch (error) {
             message.error("创建失败");

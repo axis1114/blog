@@ -28,7 +28,7 @@ export const AdminImage = () => {
                 page,
                 page_size: pagination.page_size,
             });
-            if (res.code === 2000) {
+            if (res.code === 0) {
                 setData(res.data.list);
                 setPagination({
                     ...pagination,
@@ -36,7 +36,7 @@ export const AdminImage = () => {
                     total: res.data.total,
                 });
             } else {
-                message.error(res.msg);
+                message.error(res.message);
             }
         } catch (error) {
             console.error("获取图片列表失败:", error);
@@ -54,11 +54,11 @@ export const AdminImage = () => {
             onOk: async () => {
                 try {
                     const res = await imageDelete(id);
-                    if (res.code === 2000) {
+                    if (res.code === 0) {
                         message.success("删除成功");
                         fetchData(pagination.page);
                     } else {
-                        message.error(res.msg);
+                        message.error(res.message);
                     }
                 } catch (error) {
                     message.error("删除失败");
@@ -73,11 +73,11 @@ export const AdminImage = () => {
         try {
             const files = file instanceof FileList ? Array.from(file) : [file];
             const res = await imageUpload(files);
-            if (res.code === 2000) {
+            if (res.code === 0) {
                 message.success("上传成功");
                 fetchData(pagination.page);
             } else {
-                message.error(res.msg);
+                message.error(res.message);
             }
         } catch (error) {
             console.error("上传失败:", error);

@@ -22,9 +22,9 @@ export interface commentListParamsType extends paramsType {
 }
 
 export function commentList(
-  req: commentListParamsType
+  params: commentListParamsType
 ): Promise<baseResponse<commentType[]>> {
-  return useAxios.post("/api/comment/list", req);
+  return useAxios.get("/api/comment/list", { params: { ...params } });
 }
 
 export interface commentCreateType {
