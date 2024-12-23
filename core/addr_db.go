@@ -13,5 +13,6 @@ func InitAddrDB() *geoip2.DBReader {
 	if err != nil {
 		global.Log.Error("地址库初始化失败", zap.Error(err))
 	}
+	global.Log.Info("地址库初始化成功")
 	return db
 }
