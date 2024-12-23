@@ -17,7 +17,7 @@ type UserModel struct {
 	Nickname string          `json:"nick_name" gorm:"column:nick_name;size:50" validate:"required,min=2,max=50"`
 	Account  string          `json:"account" gorm:"uniqueIndex:idx_account,length:191" validate:"required,min=5,max=191"`
 	Password string          `json:"-" validate:"required,min=6"`
-	Email    string          `json:"email" validate:"required,email"`
+	Email    string          `json:"email"`
 	Address  string          `json:"address"`
 	Token    string          `json:"token"`
 	Role     ctypes.UserRole `json:"role" validate:"required"`
@@ -51,7 +51,6 @@ func (u *UserModel) Create(ip string) error {
 			return fmt.Errorf("创建用户失败: %w", err)
 		}
 
-		global.Log.Infof("新用户创建成功: %s", u.Account)
 		return nil
 	})
 }
