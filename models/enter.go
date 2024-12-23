@@ -20,5 +20,5 @@ type MODEL struct {
 }
 
 type IDRequest struct {
-	ID uint `json:"id" uri:"id" form:"id""`
+	ID uint `json:"id" uri:"id" form:"id"`
 }

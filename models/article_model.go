@@ -75,7 +75,6 @@ type ArticleService struct {
 type ArticleMetrics struct {
 	cacheHits   int64
 	cacheMisses int64
-	searchTime  time.Duration
 }
 
 // NewArticleService 创建文章服务实例
