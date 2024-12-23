@@ -33,10 +33,9 @@ func InitRedis() *redis.Client {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	// 测试连接并重试
-	var res string
 	var err error
 	for i := 0; i < 3; i++ {
-		res, err = rdb.Ping(ctx).Result()
+		_, err = rdb.Ping(ctx).Result()
 		if err == nil {
 			break
 		}
@@ -51,8 +50,6 @@ func InitRedis() *redis.Client {
 			zap.String("地址", redisConf.Addr()),
 			zap.Error(err))
 	}
-	global.Log.Info("Redis连接成功",
-		zap.String("地址", redisConf.Addr()),
-		zap.String("响应", res))
+	global.Log.Info("Redis连接成功")
 	return rdb
 }

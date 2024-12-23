@@ -16,16 +16,12 @@ func InitEs() *elasticsearch.TypedClient {
 	esConfig := global.Config.Es
 	cfg := elasticsearch.Config{
 		Addresses: []string{esConfig.Dsn()},
-		// 添加超时设置
-		MaxRetries:    3,
-		RetryOnStatus: []int{502, 503, 504},
-		RetryBackoff: func(attempt int) time.Duration {
-			return time.Duration(attempt) * time.Second
-		},
-		// 设置连接超时
+		// 基础重试设置
+		MaxRetries: 3,
+		// 基础连接设置
 		Transport: &http.Transport{
 			DialContext: (&net.Dialer{
-				Timeout: 5 * time.Second,
+				Timeout: 10 * time.Second, // 连接超时10秒
 			}).DialContext,
 		},
 	}
@@ -37,19 +33,17 @@ func InitEs() *elasticsearch.TypedClient {
 			zap.Error(err))
 		return nil
 	}
-	// 创建带超时的context
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// 增加健康检查超时时间
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	// 健康检查
-	res, err := es.Info().Do(ctx)
+	_, err = es.Info().Do(ctx)
 	if err != nil {
 		global.Log.Error("ES健康检查失败",
 			zap.String("dsn", esConfig.Dsn()),
 			zap.Error(err))
 		return nil
 	}
-	global.Log.Info("ES连接成功",
-		zap.String("version", res.Version.Int),
-		zap.String("cluster_name", res.ClusterName))
+	global.Log.Info("ES连接成功")
 	return es
 }

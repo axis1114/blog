@@ -52,7 +52,7 @@ func validateMysqlConfig() error {
 
 // 获取MySQL日志记录器
 func getMysqlLogger() logger.Interface {
-	if global.Config.System.Env == "dev" {
+	if global.Config.System.Env == "debug" {
 		return logger.Default.LogMode(logger.Info)
 	}
 	return logger.Default.LogMode(logger.Error)
