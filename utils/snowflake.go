@@ -28,16 +28,16 @@ func Init(startTime string, machineID int64) error {
 
 	st, err := time.Parse("2006-01-02", startTime)
 	if err != nil {
-		global.Log.Error("解析起始时间失败", zap.Error(err))
-		return fmt.Errorf("解析起始时间失败: %w", err)
+		global.Log.Error("time.Parse() failed", zap.Error(err))
+		return fmt.Errorf("time.Parse() failed: %w", err)
 	}
 
 	sf.Epoch = st.UnixNano() / 1000000
 
 	node, err := sf.NewNode(machineID)
 	if err != nil {
-		global.Log.Error("创建雪花节点失败", zap.Error(err))
-		return fmt.Errorf("创建雪花节点失败: %w", err)
+		global.Log.Error("sf.NewNode() failed", zap.Error(err))
+		return fmt.Errorf("sf.NewNode() failed: %w", err)
 	}
 
 	snowflake = &SnowflakeNode{node: node}

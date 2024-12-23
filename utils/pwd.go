@@ -11,7 +11,7 @@ import (
 func HashPassword(pwd string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
 	if err != nil {
-		global.Log.Error("密码加密失败", zap.Error(err))
+		global.Log.Error("bcrypt.GenerateFromPassword() failed", zap.Error(err))
 		return "", err
 	}
 	return string(hash), nil
@@ -21,7 +21,7 @@ func HashPassword(pwd string) (string, error) {
 func CheckPassword(hashPwd string, pwd string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashPwd), []byte(pwd))
 	if err != nil {
-		global.Log.Error("密码验证失败", zap.Error(err))
+		global.Log.Error("bcrypt.CompareHashAndPassword() failed", zap.Error(err))
 		return false
 	}
 	return true

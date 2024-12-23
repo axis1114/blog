@@ -11,7 +11,7 @@ import (
 func GetIPList() (ipList []string) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		global.Log.Error("net.Interfaces出现错误", zap.Error(err))
+		global.Log.Error("net.Interfaces() failed", zap.Error(err))
 	}
 	for _, i2 := range interfaces {
 		address, err := i2.Addrs()

@@ -19,11 +19,11 @@ func GetAddrByGin(c *gin.Context) (addr string) {
 func GetAddrByIp(ip string) string {
 	parseIP := net.ParseIP(ip)
 	if IsIntranetIP(parseIP) {
-		return "内网地址"
+		return fmt.Sprintf("%s-%s", "内网地址", ip)
 	}
 	record, err := global.AddrDB.City(net.ParseIP(ip))
 	if err != nil {
-		return "错误的地址"
+		return fmt.Sprintf("%s-%s", "错误的地址", ip)	
 	}
 	var province string
 	if len(record.Subdivisions) > 0 {
