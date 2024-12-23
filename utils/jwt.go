@@ -33,7 +33,7 @@ func GenerateAccessToken(payload PayLoad) (string, error) {
 	claims := CustomClaims{
 		PayLoad: payload,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+			ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 			Issuer:    global.Config.Jwt.Issuer,
 		},
 	}

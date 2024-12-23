@@ -43,5 +43,5 @@ func (u *User) UserCreate(c *gin.Context) {
 		res.Error(c, res.ServerError, "用户创建失败")
 		return
 	}
-	res.Success(c, account)
+	res.Success(c, strconv.FormatInt(account, 10))
 }

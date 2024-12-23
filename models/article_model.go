@@ -14,6 +14,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/refresh"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -348,20 +349,28 @@ func (s *ArticleService) SearchArticles(params SearchParams) (*SearchResult, err
 	}
 
 	from := (params.PageInfo.Page - 1) * params.PageInfo.PageSize
+
+	sortField := params.SortField
+	sortOrder := params.SortOrder
+
+	if sortField == "" {
+		sortField = "created_at"
+	}
+
+	if sortOrder == "" {
+		sortOrder = "desc"
+	}
+
 	searchRequest := global.Es.Search().
 		Index(articleIndex).
 		Query(&types.Query{Bool: boolQuery}).
+		Sort(types.SortOptions{
+			SortOptions: map[string]types.FieldSort{
+				sortField: {Order: &sortorder.SortOrder{Name: sortOrder}},
+			},
+		}).
 		From(from).
 		Size(params.PageInfo.PageSize)
-
-	// 添加排序
-	if params.SortField != "" {
-		sortOrder := "desc"
-		if params.SortOrder == "asc" {
-			sortOrder = "asc"
-		}
-		searchRequest.Sort([]string{fmt.Sprintf("%s:%s", params.SortField, sortOrder)})
-	}
 
 	resp, err := searchRequest.Do(ctx)
 	if err != nil {
@@ -467,7 +476,7 @@ func (s *ArticleService) incrementLookCount(id string) error {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
 
-	// 使用乐观锁更新访问计数
+	// 使用乐观锁更新��问计数
 	script := types.InlineScript{
 		Source: `
 			if (ctx._source.containsKey('look_count')) {

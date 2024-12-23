@@ -11,13 +11,13 @@ import (
 
 type CommentListRequest struct {
 	models.CommentRequest
-	ArticleID string `json:"article_id"`
+	ArticleID string `form:"article_id"`
 }
 
 func (cm *Comment) CommentList(c *gin.Context) {
 	var req CommentListRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+	if err := c.ShouldBindQuery(&req); err != nil {
+		global.Log.Error("c.ShouldBindQuery failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
