@@ -1,47 +1,59 @@
-﻿/* 全局基础样式重置 */
+﻿/* ===== 基础样式重置 ===== */
+/* 对所有元素应用border-box盒模型，重置外边距和内边距 */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* 自定义滚动条样式 */
+/* ===== 自定义滚动条样式 ===== */
+/* 设置滚动条的基础宽度和高度 */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
+/* 设置滚动条滑块的样式 */
 ::-webkit-scrollbar-thumb {
-  background: rgb(203, 203, 203);
-  border-radius: 10px;
+  background: rgb(203, 203, 203); /* 滑块的背景颜色 */
+  border-radius: 10px; /* 滑块的圆角 */
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ===== Tailwind CSS 框架引入 ===== */
+@tailwind base; /* 引入Tailwind基础样式 */
+@tailwind components; /* 引入Tailwind组件样式 */
+@tailwind utilities; /* 引入Tailwind工具类 */
 
-/* 搜索框样式覆盖 */
+/* ===== Ant Design搜索框样式自定义 ===== */
+/* 统一将搜索框相关组件的圆角设置为直角（border-radius: 0） */
+
+/* 输入框本体 */
 .square-search-input .ant-input {
   border-radius: 0 !important;
 }
 
+/* 搜索按钮 */
 .square-search-input .ant-input-search-button {
   border-radius: 0 !important;
 }
 
+/* 输入框组件的附加元素容器 */
 .square-search-input .ant-input-group-addon {
   border-radius: 0 !important;
 }
 
+/* 输入框的包装器 */
 .square-search-input .ant-input-affix-wrapper {
   border-radius: 0 !important;
 }
 
+/* 按钮组件 */
 .square-search-input .ant-btn {
   border-radius: 0 !important;
 }
 
-/* 确保在获得焦点时也保持直角 */
+/* ===== 输入框焦点状态样式 ===== */
+/* 确保在输入框获得焦点时依然保持直角样式 */
 .square-search-input .ant-input:focus,
 .square-search-input .ant-input-focused,
 .square-search-input .ant-input-affix-wrapper:focus,

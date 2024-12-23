@@ -19,9 +19,9 @@ export interface categoryType {
 }
 
 export function categoryList(
-  params?: paramsType
+  params: paramsType
 ): Promise<baseResponse<listDataType<categoryType>>> {
-  return useAxios.get("/api/category", { params: { ...params } });
+  return useAxios.get("/api/category/list", { params: { ...params } });
 }
 
 export function categoryDelete(id: number): Promise<baseResponse<string>> {

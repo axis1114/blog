@@ -21,9 +21,9 @@ export interface friendlinkType {
 }
 
 export function friendlinkList(
-  params?: paramsType
+  params: paramsType
 ): Promise<baseResponse<listDataType<friendlinkType>>> {
-  return useAxios.get("/api/friendlink", { params: { ...params } });
+  return useAxios.get("/api/friendlink/list", { params: { ...params } });
 }
 
 export function friendlinkDelete(id: number): Promise<baseResponse<string>> {
