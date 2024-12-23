@@ -17,8 +17,8 @@ func (a *Article) ArticleList(c *gin.Context) {
 	var req ArticleListRequest
 	err := c.ShouldBindQuery(&req)
 	if err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindQuery() failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	if req.Page <= 0 {
@@ -30,9 +30,9 @@ func (a *Article) ArticleList(c *gin.Context) {
 
 	articles, err := models.NewArticleService().SearchArticles(req.SearchParams)
 	if err != nil {
-		global.Log.Error("搜索文章失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("models.NewArticleService().SearchArticles() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "搜索文章失败")
 		return
 	}
-	res.SuccessWithPage(c, articles.Articles, int(articles.Total), req.Page, req.PageSize)
+	res.SuccessWithPage(c, articles.Articles, articles.Total, req.Page, req.PageSize)
 }

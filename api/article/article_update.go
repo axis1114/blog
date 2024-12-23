@@ -22,16 +22,16 @@ func (a *Article) ArticleUpdate(c *gin.Context) {
 	var req ArticleUpdateRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON() failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	var coverUrl string
 	if req.CoverID != 0 {
 		err = global.DB.Model(models.ImageModel{}).Where("id = ?", req.CoverID).Select("path").Scan(&coverUrl).Error
 		if err != nil {
-			global.Log.Error("选择图片路径失败", zap.Error(err))
-			res.Fail(c, res.CodeInternalError)
+			global.Log.Error("global.DB.Model(models.ImageModel{}).Where().Select().Scan() failed", zap.Error(err))
+			res.Error(c, res.ServerError, "选择图片路径失败")
 			return
 		}
 	}
@@ -46,8 +46,8 @@ func (a *Article) ArticleUpdate(c *gin.Context) {
 	}
 	err = models.NewArticleService().UpdateArticle(&article)
 	if err != nil {
-		global.Log.Error("文章更新失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("models.NewArticleService().UpdateArticle() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "文章更新失败")
 		return
 	}
 	res.Success(c, nil)

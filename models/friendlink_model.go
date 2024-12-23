@@ -1,6 +1,12 @@
 ﻿package models
 
-import "blog/global"
+import (
+	"fmt"
+
+	"blog/global"
+
+	"gorm.io/gorm"
+)
 
 type FriendLinkModel struct {
 	MODEL `json:","`
@@ -8,34 +14,24 @@ type FriendLinkModel struct {
 	Link  string `json:"link"`
 }
 
+// Create 创建友链
 func (c *FriendLinkModel) Create() error {
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(c).Error; err != nil {
+			return fmt.Errorf("创建友链失败: %w", err)
 		}
-	}()
-
-	if err := tx.Create(c).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+		global.Log.Infof("友链创建成功: %s", c.Name)
+		return nil
+	})
 }
 
+// Delete 删除友链
 func (c *FriendLinkModel) Delete() error {
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(c).Error; err != nil {
+			return fmt.Errorf("删除友链失败: %w", err)
 		}
-	}()
-
-	if err := tx.Delete(c).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+		global.Log.Infof("友链删除成功: %s", c.Name)
+		return nil
+	})
 }

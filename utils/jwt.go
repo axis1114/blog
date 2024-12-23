@@ -3,6 +3,7 @@ package utils
 import (
 	"blog/models/ctypes"
 	"errors"
+	"fmt"
 	"time"
 
 	"blog/global"
@@ -57,63 +58,129 @@ func ParseToken(tokenString string) (*CustomClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(global.Config.Jwt.Secret), nil
 	})
+
 	if err != nil {
-		return &claims, errors.New("token is expired")
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				return nil, errors.New("token已过期")
+			} else if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return nil, errors.New("token格式错误")
+			} else if ve.Errors&jwt.ValidationErrorSignatureInvalid != 0 {
+				return nil, errors.New("token签名无效")
+			} else if ve.Errors&jwt.ValidationErrorNotValidYet != 0 {
+				return nil, errors.New("token尚未生效")
+			}
+		}
+		return nil, errors.New("token无效")
 	}
+
 	if !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, errors.New("token验证失败")
 	}
+
 	return &claims, nil
 }
 
-// RefreshToken 刷新 AccessToken 和 RefreshToken
+// RefreshToken 刷新访问令牌和刷新令牌
 func RefreshToken(aToken, rToken string) (newAToken, newRToken string, err error) {
-	// 解析并验证 Refresh Token
+	// 步骤1: 解析并验证刷新令牌
 	var rClaims RefreshClaims
-	token, err := jwt.ParseWithClaims(rToken, &rClaims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(global.Config.Jwt.Secret), nil
-	})
-
-	if err != nil || !token.Valid {
-		global.Log.Error("jwt.ParseWithClaims出现错误", zap.Error(err))
-		return "", "", errors.New("invalid token")
-	}
-
-	// 检查 Refresh Token 是否即将过期
-	refreshThreshold := time.Duration(global.Config.Jwt.RefreshThreshold) * 24 * time.Hour
-	if time.Until(time.Unix(rClaims.ExpiresAt, 0)) < refreshThreshold {
-		newRToken, err = GenerateRefreshToken(rClaims.UserID)
-		if err != nil {
-			global.Log.Error("GenerateRefreshToken出现错误", zap.Error(err))
-			return "", "", errors.New("failed to refresh token")
-		}
-	} else {
-		newRToken = rToken
-	}
-
-	// 解析并验证 Access Token，若无效则生成新 Access Token
-	var aClaims CustomClaims
-	_, err = jwt.ParseWithClaims(aToken, &aClaims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(global.Config.Jwt.Secret), nil
-	})
+	rToken, err = validateRefreshToken(rToken, &rClaims)
 	if err != nil {
+		return "", "", err
+	}
+
+	// 步骤2: 处理访问令牌
+	aToken, err = handleAccessToken(aToken, rClaims.UserID)
+	if err != nil {
+		return "", "", err
+	}
+
+	return aToken, rToken, nil
+}
+
+// validateRefreshToken 验证刷新令牌并在需要时生成新的刷新令牌
+func validateRefreshToken(rToken string, rClaims *RefreshClaims) (string, error) {
+	// 解析刷新令牌
+	token, err := jwt.ParseWithClaims(rToken, rClaims, func(token *jwt.Token) (interface{}, error) {
+		// 验证签名算法
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(global.Config.Jwt.Secret), nil
+	})
+
+	// 处理刷新令牌解析错误
+	if err != nil || !token.Valid {
+		global.Log.Error("刷新令牌验证失败",
+			zap.String("token", rToken),
+			zap.Error(err),
+		)
+		return "", errors.New("refresh token无效")
+	}
+
+	// 检查刷新令牌是否即将过期
+	refreshThreshold := time.Duration(global.Config.Jwt.RefreshThreshold) * 24 * time.Hour
+	timeUntilExpiry := time.Until(time.Unix(rClaims.ExpiresAt, 0))
+
+	// 如果刷新令牌即将过期，生成新的刷新令牌
+	if timeUntilExpiry < refreshThreshold {
+		newRToken, err := GenerateRefreshToken(rClaims.UserID)
+		if err != nil {
+			global.Log.Error("生成新的刷新令牌失败",
+				zap.Uint("userID", rClaims.UserID),
+				zap.Error(err),
+			)
+			return "", errors.New("生成新的刷新令牌失败")
+		}
+		return newRToken, nil
+	}
+
+	// 如果刷新令牌仍然有效，返回原令牌
+	return rToken, nil
+}
+
+// handleAccessToken 处理访问令牌的验证和刷新
+func handleAccessToken(aToken string, userID uint) (string, error) {
+	var aClaims CustomClaims
+
+	// 解析访问令牌
+	_, err := jwt.ParseWithClaims(aToken, &aClaims, func(token *jwt.Token) (interface{}, error) {
+		// 验证签名算法
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(global.Config.Jwt.Secret), nil
+	})
+
+	// 处理访问令牌解析结果
+	if err != nil {
+		// 检查是否是过期错误
 		if vErr, ok := err.(*jwt.ValidationError); ok && vErr.Errors&jwt.ValidationErrorExpired != 0 {
-			// Access Token 已过期，生成新的 Access Token
-			newAToken, err = GenerateAccessToken(PayLoad{
+			// 生成新的访问令牌
+			newAToken, err := GenerateAccessToken(PayLoad{
 				UserID:  aClaims.UserID,
 				Account: aClaims.Account,
 				Role:    aClaims.Role,
 			})
 			if err != nil {
-				global.Log.Error("GenerateAccessToken出现错误", zap.Error(err))
-				return "", "", errors.New("failed to refresh token")
+				global.Log.Error("生成新的访问令牌失败",
+					zap.Uint("userID", userID),
+					zap.Error(err),
+				)
+				return "", errors.New("生成新的访问令牌失败")
 			}
-			return newAToken, newRToken, nil
+			return newAToken, nil
 		}
-		global.Log.Error("jwt.ParseWithClaims出现错误", zap.Error(err))
-		return "", "", errors.New("invalid token")
+
+		// 其他错误情况
+		global.Log.Error("访问令牌验证失败",
+			zap.String("token", aToken),
+			zap.Error(err),
+		)
+		return "", errors.New("访问令牌无效")
 	}
 
-	// Access Token 仍然有效，返回原 Token
-	return aToken, newRToken, nil
+	// 访问令牌仍然有效，返回原令牌
+	return aToken, nil
 }

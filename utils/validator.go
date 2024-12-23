@@ -74,3 +74,9 @@ func Translate(err error) string {
 	}
 	return err.Error()
 }
+
+var validate = validator.New()
+
+func Validate(i interface{}) error {
+	return validate.Struct(i)
+}

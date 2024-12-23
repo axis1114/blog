@@ -22,14 +22,14 @@ type UserCreateRequest struct {
 func (u *User) UserCreate(c *gin.Context) {
 	var req UserCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	account, err := utils.GenerateID()
 	if err != nil {
-		global.Log.Error("生成ID失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("utils.GenerateID() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "生成ID失败")
 		return
 	}
 	err = (&models.UserModel{
@@ -39,8 +39,8 @@ func (u *User) UserCreate(c *gin.Context) {
 		Role:     req.Role,
 	}).Create(c.ClientIP())
 	if err != nil {
-		global.Log.Error("用户创建失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("user.Create() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "用户创建失败")
 		return
 	}
 	res.Success(c, account)

@@ -17,14 +17,14 @@ func (a *Article) ArticleDetail(c *gin.Context) {
 	var req ArticleDetailRequest
 	err := c.ShouldBindUri(&req)
 	if err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindUri() failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	article, err := models.NewArticleService().GetArticle(req.ID)
 	if err != nil {
-		global.Log.Error("加载失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("models.NewArticleService().GetArticle() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "加载失败")
 		return
 	}
 	res.Success(c, article)

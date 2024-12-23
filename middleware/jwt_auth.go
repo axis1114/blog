@@ -17,7 +17,7 @@ func JwtAuth() gin.HandlerFunc {
 		tokenString := c.Request.Header.Get("Authorization")
 		// 检查 Token 是否存在并去除 "Bearer " 前缀
 		if len(tokenString) < 7 || tokenString[:7] != "Bearer " {
-			res.FailWithCode(c, http.StatusUnauthorized, res.CodeUnauthorized)
+			res.HttpError(c, http.StatusUnauthorized, res.TokenMissing, "缺少token")
 			c.Abort()
 			return
 		}
@@ -25,23 +25,22 @@ func JwtAuth() gin.HandlerFunc {
 		// 解析 Token
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
-			if err.Error() == "token is expired" {
+			if err.Error() == "token已过期" {
 				// Token 已过期，尝试刷新
 				newAccessToken, refreshErr := utils.RefreshAccessToken(tokenString, claims.UserID)
 				if refreshErr != nil || newAccessToken == "" {
-					global.Log.Error("token刷新失败", zap.Error(refreshErr))
-					res.FailWithCode(c, http.StatusUnauthorized, res.CodeTokenExpired)
+					global.Log.Error("utils.RefreshAccessToken failed", zap.Error(refreshErr))
+					res.HttpError(c, http.StatusUnauthorized, res.TokenExpired, "token已过期")
 					c.Abort()
 					return
 				}
 				// 刷新成功，将新的 Token 设置到响应头中
-
 				c.Request.Header.Set("Authorization", "Bearer "+newAccessToken)
 				c.Set("claims", claims)
 				c.Next()
 				return
 			}
-			res.Fail(c, res.CodeTokenInvalid)
+			res.HttpError(c, http.StatusUnauthorized, res.TokenInvalid, "token无效")
 			c.Abort()
 			return
 		}
@@ -66,7 +65,7 @@ func JwtAdmin() gin.HandlerFunc {
 		_claims, _ := c.Get("claims")
 		claims := _claims.(*utils.CustomClaims)
 		if claims.Role != ctypes.RoleAdmin {
-			res.Fail(c, res.CodeForbidden)
+			res.HttpError(c, http.StatusForbidden, res.PermissionDenied, "权限不足")
 			c.Abort()
 			return
 		}

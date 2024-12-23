@@ -26,8 +26,8 @@ func (a *Article) ArticleCreate(c *gin.Context) {
 	var req ArticleRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON() failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	_claims, _ := c.Get("claims")
@@ -35,14 +35,14 @@ func (a *Article) ArticleCreate(c *gin.Context) {
 	userID := claims.UserID
 	html, err := utils.ConvertMarkdownToHTML(req.Content)
 	if err != nil {
-		global.Log.Error("utils.ConvertMarkdownToHTML失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("utils.ConvertMarkdownToHTML() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "utils.ConvertMarkdownToHTML失败")
 		return
 	}
 	content, err := utils.ConvertHTMLToMarkdown(html)
 	if err != nil {
-		global.Log.Error("utils.ConvertHTMLToMarkdown失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("utils.ConvertHTMLToMarkdown() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "utils.ConvertHTMLToMarkdown失败")
 		return
 	}
 
@@ -50,8 +50,8 @@ func (a *Article) ArticleCreate(c *gin.Context) {
 		var imageIDList []uint
 		global.DB.Model(models.ImageModel{}).Select("id").Scan(&imageIDList)
 		if len(imageIDList) == 0 {
-			global.Log.Error("获取图片id失败")
-			res.Fail(c, res.CodeInternalError)
+			global.Log.Error("global.DB.Model(models.ImageModel{}).Select() failed", zap.Error(err))
+			res.Error(c, res.ServerError, "获取图片id失败")
 			return
 		}
 		rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -61,21 +61,21 @@ func (a *Article) ArticleCreate(c *gin.Context) {
 	var coverUrl string
 	err = global.DB.Model(models.ImageModel{}).Where("id = ?", req.CoverID).Select("path").Scan(&coverUrl).Error
 	if err != nil {
-		global.Log.Error("获取图片路径失败")
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("global.DB.Model(models.ImageModel{}).Where().Select().Scan() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "获取图片路径失败")
 		return
 	}
 	var user models.UserModel
 	err = global.DB.Where("id = ?", userID).First(&user).Error
 	if err != nil {
-		global.Log.Error("查找user失败")
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("global.DB.Where().First() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "查找user失败")
 		return
 	}
 	id, err := utils.GenerateID()
 	if err != nil {
-		global.Log.Error("生成ID失败")
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("utils.GenerateID() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "生成ID失败")
 		return
 	}
 	article := models.Article{
@@ -92,8 +92,8 @@ func (a *Article) ArticleCreate(c *gin.Context) {
 	articleService := models.NewArticleService()
 	err = articleService.CreateArticle(&article)
 	if err != nil {
-		global.Log.Error("创建文章失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("articleService.CreateArticle() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "创建文章失败")
 		return
 	}
 	res.Success(c, nil)

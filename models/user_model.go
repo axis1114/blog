@@ -7,60 +7,69 @@ import (
 	"blog/global"
 	"blog/models/ctypes"
 	"blog/utils"
+
+	"gorm.io/gorm"
 )
 
 // UserModel 用户模型
 type UserModel struct {
 	MODEL    `json:","`
-	Nickname string          `json:"nick_name" gorm:"column:nick_name"`
-	Account  string          `json:"account" gorm:"uniqueIndex:idx_account,length:191"`
-	Password string          `json:"-"`
-	Email    string          `json:"email"`
+	Nickname string          `json:"nick_name" gorm:"column:nick_name;size:50" validate:"required,min=2,max=50"`
+	Account  string          `json:"account" gorm:"uniqueIndex:idx_account,length:191" validate:"required,min=5,max=191"`
+	Password string          `json:"-" validate:"required,min=6"`
+	Email    string          `json:"email" validate:"required,email"`
 	Address  string          `json:"address"`
 	Token    string          `json:"token"`
-	Role     ctypes.UserRole `json:"role"`
+	Role     ctypes.UserRole `json:"role" validate:"required"`
 }
 
 // Create 创建用户
 func (u *UserModel) Create(ip string) error {
-
-	// 检查用户是否存在
-	if err := u.checkExists(); err != nil {
-		return fmt.Errorf("用户检查失败: %w", err)
+	// 验证用户输入
+	if err := utils.Validate(u); err != nil {
+		return fmt.Errorf("输入验证失败: %w", err)
 	}
 
-	// 密码加密
-	hashedPassword, err := utils.HashPassword(u.Password)
-	if err != nil {
-		return fmt.Errorf("密码处理失败: %w", err)
-	}
-	u.Password = hashedPassword
-
-	// 获取地址信息
-	u.Address = utils.GetAddrByIp(ip)
-
-	// 创建事务
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return global.DB.Transaction(func(tx *gorm.DB) error {
+		// 检查用户是否存在
+		if err := u.checkExists(); err != nil {
+			return fmt.Errorf("用户检查失败: %w", err)
 		}
-	}()
 
-	// 创建用户
-	if err := tx.Create(u).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("创建用户失败: %w", err)
-	}
+		// 密码加密
+		hashedPassword, err := utils.HashPassword(u.Password)
+		if err != nil {
+			return fmt.Errorf("密码处理失败: %w", err)
+		}
+		u.Password = hashedPassword
 
-	return tx.Commit().Error
+		// 获取地址信息
+		u.Address = utils.GetAddrByIp(ip)
+
+		// 创建用户
+		if err := tx.Create(u).Error; err != nil {
+			return fmt.Errorf("创建用户失败: %w", err)
+		}
+
+		global.Log.Infof("新用户创建成功: %s", u.Account)
+		return nil
+	})
 }
 
 // checkExists 检查用户是否已存在
 func (u *UserModel) checkExists() error {
-	var count int64
-	global.DB.Model(&UserModel{}).Where("nick_name = ? OR account = ?", u.Nickname, u.Account).Count(&count)
-	if count > 0 {
+	var exists bool
+	err := global.DB.Model(&UserModel{}).
+		Select("1").
+		Where("nick_name = ? OR account = ?", u.Nickname, u.Account).
+		Limit(1).
+		Find(&exists).
+		Error
+
+	if err != nil {
+		return fmt.Errorf("检查用户存在性失败: %w", err)
+	}
+	if exists {
 		return errors.New("用户名或账号已存在")
 	}
 	return nil
@@ -89,9 +98,18 @@ func (u *UserModel) UpdatePassword(newPassword string) error {
 // UpdateProfile 更新用户信息
 func (u *UserModel) UpdateProfile(updates map[string]interface{}) error {
 	// 过滤敏感字段
-	delete(updates, "password")
-	delete(updates, "account")
-	return global.DB.Model(u).Updates(updates).Error
+	sensitiveFields := []string{"password", "account", "role", "token"}
+	for _, field := range sensitiveFields {
+		delete(updates, field)
+	}
+
+	return global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(u).Updates(updates).Error; err != nil {
+			return fmt.Errorf("更新用户信息失败: %w", err)
+		}
+		global.Log.Infof("用户信息更新成功: %s", u.Account)
+		return nil
+	})
 }
 
 // UpdateToken 更新用户token
@@ -101,19 +119,21 @@ func (u *UserModel) UpdateToken(token string) error {
 
 // Delete 删除用户
 func (u *UserModel) Delete() error {
-	// 创建事务
-	tx := global.DB.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
+	return global.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(u).Error; err != nil {
+			return fmt.Errorf("删除用户失败: %w", err)
 		}
-	}()
+		global.Log.Infof("用户删除成功: %s", u.Account)
+		return nil
+	})
+}
 
-	// 执行删除操作
-	if err := tx.Delete(u).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("删除用户失败: %w", err)
-	}
+// ValidatePassword 验证密码
+func (u *UserModel) ValidatePassword(password string) bool {
+	return utils.CheckPassword(password, u.Password)
+}
 
-	return tx.Commit().Error
+// IsAdmin 检查是否为管理员
+func (u *UserModel) IsAdmin() bool {
+	return u.Role == ctypes.RoleAdmin
 }

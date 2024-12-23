@@ -21,8 +21,8 @@ func (cm *Comment) CommentCreate(c *gin.Context) {
 	claims := _claims.(*utils.CustomClaims)
 	var req CommentCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 
@@ -35,8 +35,8 @@ func (cm *Comment) CommentCreate(c *gin.Context) {
 
 	// 4. 创建评论
 	if err := models.CreateComment(comment); err != nil {
-		global.Log.Error("创建评论失败", zap.Error(err))
-		res.FailWithMsg(c, res.CodeInternalError, err.Error())
+		global.Log.Error("comment.CreateComment() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "创建评论失败")
 		return
 	}
 

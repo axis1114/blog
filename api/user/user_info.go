@@ -15,8 +15,8 @@ func (u *User) Userinfo(c *gin.Context) {
 	_claims, _ := c.Get("claims")
 	claims := _claims.(*utils.CustomClaims)
 	if err := global.DB.First(&user, claims.UserID).Error; err != nil {
-		global.Log.Error("获取用户信息失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("global.DB.First() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "获取用户信息失败")
 		return
 	}
 	res.Success(c, user)

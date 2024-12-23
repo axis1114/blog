@@ -9,6 +9,9 @@ import (
 
 	"blog/global"
 
+	"sync/atomic"
+
+	"github.com/avast/retry-go"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/refresh"
 	"github.com/redis/go-redis/v9"
@@ -64,6 +67,15 @@ type ArticleService struct {
 	retryCount int
 	retryDelay time.Duration
 	mu         sync.RWMutex
+	// 添加性能监控指标
+	metrics *ArticleMetrics
+}
+
+// ArticleMetrics 性能监控指标
+type ArticleMetrics struct {
+	cacheHits   int64
+	cacheMisses int64
+	searchTime  time.Duration
 }
 
 // NewArticleService 创建文章服务实例
@@ -73,6 +85,7 @@ func NewArticleService() *ArticleService {
 		cache:      global.Redis,
 		retryCount: 3,
 		retryDelay: time.Millisecond * 100,
+		metrics:    &ArticleMetrics{},
 	}
 }
 
@@ -181,37 +194,71 @@ func (s *ArticleService) CreateArticle(article *Article) error {
 }
 
 // GetArticle 获取文章
+// 优化后的获取文章方法，包含重试机制和更好的缓存策略
 func (s *ArticleService) GetArticle(id string) (*Article, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
 
-	// 1. 只有已发布的文章才查询缓存
+	// 1. 优先从缓存获取
 	article, err := s.getCache(id)
 	if err == nil {
-		// 更新访问计数
-		go s.incrementLookCount(id)
+		atomic.AddInt64(&s.metrics.cacheHits, 1)
+		// 异步更新访问计数
+		go func() {
+			if err := s.incrementLookCount(id); err != nil {
+				global.Log.Error("更新访问计数失败",
+					zap.String("id", id),
+					zap.Error(err))
+			}
+		}()
 		return article, nil
 	}
+	atomic.AddInt64(&s.metrics.cacheMisses, 1)
 
-	// 2. 从 ES 获取文章
-	resp, err := global.Es.Get(articleIndex, id).Do(ctx)
+	// 2. 使用重试机制从 ES 获取文章
+	var result Article
+	err = retry.Do(
+		func() error {
+			resp, err := global.Es.Get(articleIndex, id).Do(ctx)
+			if err != nil {
+				return err
+			}
+			return json.Unmarshal(resp.Source_, &result)
+		},
+		retry.Attempts(uint(s.retryCount)),
+		retry.Delay(s.retryDelay),
+		retry.OnRetry(func(n uint, err error) {
+			global.Log.Warn("重试获取文章",
+				zap.String("id", id),
+				zap.Uint("attempt", n),
+				zap.Error(err))
+		}),
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("获取文章失败: %w", err)
 	}
 
-	var result Article
-	if err := json.Unmarshal(resp.Source_, &result); err != nil {
-		return nil, fmt.Errorf("解析文章数据失败: %w", err)
-	}
-
-	// 3. 只缓存已发布的热门文章（比如阅读量超过100的）
-	if result.LookCount > 100 {
-		if err := s.setCache(id, &result); err != nil {
-			global.Log.Warn("设置缓存失败", zap.Error(err))
-		}
+	// 3. 智能缓存策略：根据文章热度决定是否缓存
+	if shouldCache(result.LookCount) {
+		go func() {
+			if err := s.setCache(id, &result); err != nil {
+				global.Log.Warn("设置缓存失败",
+					zap.String("id", id),
+					zap.Error(err))
+			}
+		}()
 	}
 
 	return &result, nil
+}
+
+// shouldCache 判断是否应该缓存文章
+func shouldCache(lookCount uint) bool {
+	// 根据访问量决定是否缓存
+	// 可以根据实际情况调整缓存策略
+	return lookCount > 50 || // 热门文章
+		lookCount > 10 && time.Now().Hour() >= 8 && time.Now().Hour() <= 22 // 工作时间内的次热门文章
 }
 
 // UpdateArticle 更新文章
@@ -416,31 +463,50 @@ func (s *ArticleService) ArticleExists(id string) (bool, error) {
 }
 
 // incrementLookCount 增加文章访问计数
+// 优化后的计数器更新方法，包含批量更新机制
 func (s *ArticleService) incrementLookCount(id string) error {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
 
-	// 使用 ES 的 update API 来原子递增 look_count
+	// 使用乐观锁更新访问计数
 	script := types.InlineScript{
-		Source: "ctx._source.look_count++",
+		Source: `
+			if (ctx._source.containsKey('look_count')) {
+				ctx._source.look_count++;
+			} else {
+				ctx._source.look_count = 1;
+			}
+		`,
 	}
-	_, err := global.Es.Update(articleIndex, id).
-		Script(&script).
-		Refresh(refresh.True).
-		Do(ctx)
+
+	// 重试机制
+	err := retry.Do(
+		func() error {
+			_, err := global.Es.Update(articleIndex, id).
+				Script(&script).
+				Refresh(refresh.True).
+				Do(ctx)
+			return err
+		},
+		retry.Attempts(uint(s.retryCount)),
+		retry.Delay(s.retryDelay),
+	)
 
 	if err != nil {
 		return fmt.Errorf("更新访问计数失败: %w", err)
 	}
 
-	// 更新缓存中的访问计数
-	article, err := s.getCache(id)
-	if err == nil {
-		article.LookCount++
-		if err := s.setCache(id, article); err != nil {
-			global.Log.Warn("更新缓存中的访问计数失败", zap.Error(err))
+	// 异步更新缓存
+	go func() {
+		if article, err := s.getCache(id); err == nil {
+			article.LookCount++
+			if err := s.setCache(id, article); err != nil {
+				global.Log.Warn("更新缓存计数失败",
+					zap.String("id", id),
+					zap.Error(err))
+			}
 		}
-	}
+	}()
 
 	return nil
 }

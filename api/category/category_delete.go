@@ -12,8 +12,8 @@ import (
 func (cg *Category) CategoryDelete(c *gin.Context) {
 	var req models.IDRequest
 	if err := c.ShouldBindUri(&req); err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindUri failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	err := (&models.CategoryModel{
@@ -22,8 +22,8 @@ func (cg *Category) CategoryDelete(c *gin.Context) {
 		},
 	}).Delete()
 	if err != nil {
-		global.Log.Error("分类删除失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("category.Delete() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "分类删除失败")
 		return
 	}
 	res.Success(c, nil)

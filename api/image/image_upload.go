@@ -19,21 +19,21 @@ func (i *Image) ImageUpload(c *gin.Context) {
 	// 1. 获取上传文件
 	form, err := c.MultipartForm()
 	if err != nil {
-		global.Log.Error("获取MultipartForm失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("c.MultipartForm() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "获取MultipartForm失败")
 		return
 	}
 
 	fileList, ok := form.File["images"]
 	if !ok || len(fileList) == 0 {
-		res.Fail(c, res.CodeValidationFail)
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 
 	// 2. 确保上传目录存在
 	if err := ensureUploadDir(global.Config.Upload.Path); err != nil {
-		global.Log.Error("创建上传目录失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("ensureUploadDir() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "创建上传目录失败")
 		return
 	}
 
@@ -85,7 +85,7 @@ func processFileUpload(c *gin.Context, file *multipart.FileHeader) models.Upload
 	fullPath := filepath.Join(global.Config.Upload.Path, fileName)
 
 	if err := c.SaveUploadedFile(file, fullPath); err != nil {
-		global.Log.Error("保存上传文件失败",
+		global.Log.Error("c.SaveUploadedFile() failed",
 			zap.String("filename", file.Filename),
 			zap.String("fullPath", fullPath),
 			zap.Error(err))

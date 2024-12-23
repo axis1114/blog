@@ -16,16 +16,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// CommentModel 评论模型，用于存储文章评论信息
 type CommentModel struct {
 	MODEL           `json:","`
 	SubComments     []*CommentModel `json:"sub_comments" gorm:"foreignKey:ParentCommentID;constraint:OnDelete:CASCADE"`
 	ParentCommentID *uint           `json:"parent_comment_id" gorm:"index:idx_parent_article"`
-	Content         string          `json:"content"`
-	DiggCount       uint            `json:"digg_count"`
-	CommentCount    uint            `json:"comment_count"`
-	ArticleID       string          `json:"article_id" gorm:"index:idx_parent_article"`
-	UserID          uint            `json:"user_id"`
-	User            UserModel       `json:"user" gorm:"foreignKey:UserID"`
+	Content         string          `json:"content"`                                    // 评论内容
+	DiggCount       uint            `json:"digg_count"`                                 // 点赞数
+	CommentCount    uint            `json:"comment_count"`                              // 子评论数
+	ArticleID       string          `json:"article_id" gorm:"index:idx_parent_article"` // 关联的文章ID
+	UserID          uint            `json:"user_id"`                                    // 评论用户ID
+	User            UserModel       `json:"user" gorm:"foreignKey:UserID"`              // 关联的用户信息
 }
 
 type CommentRequest struct {
@@ -63,9 +64,15 @@ func init() {
 	//sensitiveFilter.AddWord("敏感词1", "敏感词2")
 }
 
-// GetArticleCommentsWithTree 获取文章的所有评论（树形结构）
+// GetArticleCommentsWithTree 优化版本
 func GetArticleCommentsWithTree(articleID string) ([]*CommentModel, error) {
-	// 1. 获取所有评论
+	// 1. 尝试从缓存获取
+	cacheKey := fmt.Sprintf("%s:article:%s", CommentCacheKeyPrefix, articleID)
+	if comments, err := getCommentsFromRedis(cacheKey); err == nil {
+		return comments, nil
+	}
+
+	// 2. 缓存未命中，从数据库获取
 	var allComments []*CommentModel
 	if err := global.DB.Model(&CommentModel{}).
 		Where("article_id = ?", articleID).
@@ -75,16 +82,30 @@ func GetArticleCommentsWithTree(articleID string) ([]*CommentModel, error) {
 		return nil, fmt.Errorf("获取评论失败: %w", err)
 	}
 
-	// 2. 构建评论树
+	// 3. 构建评论树
+	rootComments := buildCommentTree(allComments)
+
+	// 4. 存入缓存
+	go func() {
+		if err := cacheCommentsToRedis(cacheKey, rootComments); err != nil {
+			global.Log.Error("缓存评论失败", zap.Error(err))
+		}
+	}()
+
+	return rootComments, nil
+}
+
+// buildCommentTree 将评论列表构建成树形结构
+func buildCommentTree(allComments []*CommentModel) []*CommentModel {
 	commentMap := make(map[uint]*CommentModel)
 	var rootComments []*CommentModel
 
-	// 建立映射关系
+	// 1. 建立映射关系
 	for _, comment := range allComments {
 		commentMap[comment.ID] = comment
 	}
 
-	// 构建树形结构
+	// 2. 构建树形结构
 	for _, comment := range allComments {
 		if comment.ParentCommentID == nil {
 			rootComments = append(rootComments, comment)
@@ -95,50 +116,79 @@ func GetArticleCommentsWithTree(articleID string) ([]*CommentModel, error) {
 		}
 	}
 
-	return rootComments, nil
+	return rootComments
 }
 
+// CreateComment 优化版本
 func CreateComment(comment *CommentModel) error {
+	// 1. 评论内容验证和过滤
 	if err := validateAndFilterComment(comment); err != nil {
-		return err
+		return fmt.Errorf("评论验证失败: %w", err)
 	}
 
-	err := canUserComment(comment.UserID)
-	if err != nil {
-		return err
+	// 2. 评论频率限制检查
+	if err := canUserComment(comment.UserID); err != nil {
+		return fmt.Errorf("评论频率限制: %w", err)
 	}
 
-	err = global.DB.Transaction(func(tx *gorm.DB) error {
+	// 3. 事务处理
+	err := global.DB.Transaction(func(tx *gorm.DB) error {
+		// 检查父评论是否存在
 		if comment.ParentCommentID != nil {
-			var parentComment CommentModel
-			if err := tx.Set("gorm:query_option", "FOR UPDATE SKIP LOCKED").
-				First(&parentComment, *comment.ParentCommentID).Error; err != nil {
+			if err := checkParentComment(tx, *comment.ParentCommentID); err != nil {
 				return err
 			}
 		}
 
+		// 创建评论
 		if err := tx.Create(comment).Error; err != nil {
-			return err
+			return fmt.Errorf("创建评论失败: %w", err)
 		}
 
+		// 更新父评论的评论计数
 		if comment.ParentCommentID != nil {
-			return tx.Model(&CommentModel{}).
-				Where("id = ?", *comment.ParentCommentID).
-				UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
-				Error
+			if err := updateParentCommentCount(tx, *comment.ParentCommentID); err != nil {
+				return err
+			}
 		}
+
 		return nil
 	})
 
+	// 4. 异步清除缓存
 	if err == nil {
-		go func() {
-			if err := clearArticleCommentsCache(comment.ArticleID); err != nil {
-				global.Log.Error("清除评论缓存失败", zap.Error(err))
-			}
-		}()
+		go clearCommentCache(comment.ArticleID)
 	}
 
 	return err
+}
+
+// 新增的辅助函数
+func checkParentComment(tx *gorm.DB, parentID uint) error {
+	var exists bool
+	err := tx.Model(&CommentModel{}).
+		Select("1").
+		Where("id = ?", parentID).
+		First(&exists).Error
+	if err != nil {
+		return ErrParentCommentNotExist
+	}
+	return nil
+}
+
+func updateParentCommentCount(tx *gorm.DB, parentID uint) error {
+	return tx.Model(&CommentModel{}).
+		Where("id = ?", parentID).
+		UpdateColumn("comment_count", gorm.Expr("comment_count + ?", 1)).
+		Error
+}
+
+func clearCommentCache(articleID string) {
+	if err := clearArticleCommentsCache(articleID); err != nil {
+		global.Log.Error("清除评论缓存失败",
+			zap.String("article_id", articleID),
+			zap.Error(err))
+	}
 }
 
 func validateComment(comment *CommentModel) error {

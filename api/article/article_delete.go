@@ -17,15 +17,15 @@ func (a *Article) ArticleDelete(c *gin.Context) {
 	var req ArticleDeleteRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON() failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 
 	err = models.NewArticleService().DeleteArticles(req.IDList)
 	if err != nil {
-		global.Log.Error("文章删除失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("articleService.DeleteArticles() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "文章删除失败")
 		return
 	}
 	res.Success(c, nil)

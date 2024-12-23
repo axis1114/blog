@@ -17,10 +17,6 @@ type CaptchaResponse struct {
 }
 
 // CaptchaCreate  验证码生成
-// @Summary 验证码生成
-// @Router /api/captcha [get]
-// @Produce json
-// @Success 200 {object} res.Response{data=CaptchaResponse}
 func (s *System) CaptchaCreate(c *gin.Context) {
 	driver := base64Captcha.NewDriverDigit(
 		global.Config.Captcha.ImgHeight,
@@ -32,8 +28,8 @@ func (s *System) CaptchaCreate(c *gin.Context) {
 	captcha := base64Captcha.NewCaptcha(driver, Store)
 	id, b64s, _, err := captcha.Generate()
 	if err != nil {
-		global.Log.Error("验证码生成失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("captcha.Generate() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "验证码生成失败")
 		return
 	}
 	res.Success(c, CaptchaResponse{

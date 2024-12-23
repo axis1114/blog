@@ -16,16 +16,16 @@ type CategoryCreate struct {
 func (cg *Category) CategoryCreate(c *gin.Context) {
 	var req CategoryCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("校验参数失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	err := (&models.CategoryModel{
 		Name: req.Name,
 	}).Create()
 	if err != nil {
-		global.Log.Error("分类创建失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("category.Create() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "分类创建失败")
 		return
 	}
 	res.Success(c, nil)

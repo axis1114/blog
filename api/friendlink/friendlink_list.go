@@ -13,17 +13,17 @@ import (
 func (f *FriendLink) FriendLinkList(c *gin.Context) {
 	var req models.PageInfo
 	if err := c.ShouldBindQuery(&req); err != nil {
-		global.Log.Error("参数校验失败", zap.Error(err))
-		res.Fail(c, res.CodeValidationFail)
+		global.Log.Error("c.ShouldBindQuery failed", zap.Error(err))
+		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
 	list, count, err := search.ComList(models.FriendLinkModel{}, search.Option{
 		PageInfo: req,
 	})
 	if err != nil {
-		global.Log.Error("加载失败", zap.Error(err))
-		res.Fail(c, res.CodeInternalError)
+		global.Log.Error("search.ComList() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "加载失败")
 		return
 	}
-	res.SuccessWithPage(c, list, int(count), req.Page, req.PageSize)
+	res.SuccessWithPage(c, list, count, req.Page, req.PageSize)
 }
