@@ -1,20 +1,19 @@
-﻿import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Skeleton, Empty, BackTop } from 'antd';
-import { message } from 'antd';
-import { articleDetail, articleType } from '@/api/article';
-import MdEditor from 'react-markdown-editor-lite';
-import MarkdownIt from 'markdown-it';
-import 'react-markdown-editor-lite/lib/index.css';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/github.css';
-import { Row, Col } from 'antd';
-import { commentType, commentList } from '@/api/comment';
-import { CommentArea } from '../comment/comment';
-import { ArticleSearch } from '../search/articlesearch';
-// 修改样式
+﻿import { articleDetail, articleType } from "@/api/article";
+import { commentList, commentType } from "@/api/comment";
+import { BackTop, Col, Empty, message, Row, Skeleton } from "antd";
+import hljs from "highlight.js";
+import "highlight.js/styles/github.css";
+import MarkdownIt from "markdown-it";
+import { useCallback, useEffect, useState } from "react";
+import MdEditor from "react-markdown-editor-lite";
+import "react-markdown-editor-lite/lib/index.css";
+import { useParams } from "react-router-dom";
+import { CommentArea } from "../comment/comment";
+import { ArticleSearch } from "../search/articlesearch";
+
+// Markdown 样式定义
 const styles = `
-/* 整体内容样式优化 */
+/* 整体内容样式配置 */
 .markdown-content {
     padding-bottom: 100px;
     font-size: 18px;  // 增大基础字号
@@ -250,280 +249,347 @@ const styles = `
 
 // 配置 markdown 解析器
 const mdParser = new MarkdownIt({
-    html: true,                // 允许 HTML 标签
-    linkify: true,            // 自动转换 URL 为链接
-    typographer: true,        // 启用排版功能
-    highlight: function (str, lang) {  // 代码高亮处理
-        try {
-            return hljs.highlight(str, { language: lang }).value;
-        } catch (__) {
-            return '';
-        }
+  html: true, // 允许解析 HTML 标签
+  linkify: true, // 自动将 URL 转换为可点击的链接
+  typographer: true, // 启用排版美化功能
+  highlight: function (str, lang) {
+    // 代码块语法高亮处理
+    try {
+      return hljs.highlight(str, { language: lang }).value;
+    } catch (__) {
+      return "";
     }
+  },
 });
 
-// 从 markdown 内容中提取标题并生成目录
+// 从 markdown 内容中提取标题并生成目录结构
 const extractHeadings = (content: string) => {
-    const lines = content.split('\n');
-    const headings = lines
-        .filter(line => line.startsWith('#'))
-        .map(line => {
-            const level = line.match(/^#+/)?.[0].length || 0;  // 获取标题级别
-            const title = line.replace(/^#+\s*/, '').trim();   // 提取标题文本
-            // 生成唯一的锚点 ID
-            const key = `heading-${title
-                .toLowerCase()
-                .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-                .replace(/^-|-$/g, '')}`;
-            return { key, href: `#${key}`, title, level };
-        });
-    return headings;
+  const lines = content.split("\n");
+  const headings = lines
+    .filter((line) => line.startsWith("#"))
+    .map((line) => {
+      const level = line.match(/^#+/)?.[0].length || 0; // 获取标题级别
+      const title = line.replace(/^#+\s*/, "").trim(); // 提取标题文本
+      // 生成唯一的锚点 ID
+      const key = `heading-${title
+        .toLowerCase()
+        .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+        .replace(/^-|-$/g, "")}`;
+      return { key, href: `#${key}`, title, level };
+    });
+  return headings;
 };
 
-// Markdown 内容展示组件
+// Markdown 内容展示组件 - 负责渲染文章内容
 const MarkdownViewer = ({ content }: { content: string }) => {
-    // 修改 markdown-it 的渲染规则，为标题添加 id
-    mdParser.renderer.rules.heading_open = (tokens, idx) => {
-        const title = tokens[idx + 1].content.trim();
-        const id = `heading-${title
-            .toLowerCase()
-            .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-            .replace(/^-|-$/g, '')}`;
-        return `<h${tokens[idx].markup.length} id="${id}">`;
-    };
+  // 修改 markdown-it 的渲染规则，为标题添加 id
+  mdParser.renderer.rules.heading_open = (tokens, idx) => {
+    const title = tokens[idx + 1].content.trim();
+    const id = `heading-${title
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-|-$/g, "")}`;
+    return `<h${tokens[idx].markup.length} id="${id}">`;
+  };
 
-    return (
-        <MdEditor
-            value={content}
-            view={{ menu: false, md: false, html: true }}
-            canView={{ menu: false, md: false, html: true, fullScreen: false, hideMenu: false, both: false }}
-            readOnly={true}
-            className="border-none shadow-none pl-8"
-            style={{ backgroundColor: 'transparent' }}
-            renderHTML={(text) => (
-                <div className="markdown-content" dangerouslySetInnerHTML={{ __html: mdParser.render(text) }} />
-            )}
+  return (
+    <MdEditor
+      value={content}
+      view={{ menu: false, md: false, html: true }}
+      canView={{
+        menu: false,
+        md: false,
+        html: true,
+        fullScreen: false,
+        hideMenu: false,
+        both: false,
+      }}
+      readOnly={true}
+      className="border-none shadow-none pl-8"
+      style={{ backgroundColor: "transparent" }}
+      renderHTML={(text) => (
+        <div
+          className="markdown-content"
+          dangerouslySetInnerHTML={{ __html: mdParser.render(text) }}
         />
-    );
+      )}
+    />
+  );
 };
 
-
-// 文章头部信息组件
+// 文章头部信息组件 - 显示标题、分类、发布时间等元数据
 const ArticleHeader = ({ article }: { article: articleType }) => {
-    return (
-        <div className="border-2 border-gray-200 p-8 bg-white">
-            {/* 文章标题 */}
-            <h1 className="text-3xl font-bold mb-4 text-gray-900">
-                {article.title}
-            </h1>
-
-            {/* 文章信息 */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                    {/* 分类标签 */}
-                    <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-xl border-2 border-blue-200">
-                        {article.category}
-                    </div>
-
-                    {/* 发布时间 */}
-                    <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
-                        发布于{new Date(article.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
-                        更新于{new Date(article.updated_at).toLocaleDateString()}
-                    </div>
-                </div>
-
-                {/* 统计信息 */}
-                <div className="flex items-center space-x-4 text-gray-500 text-xl">
-                    <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span>{article.look_count} 阅读</span>
-                    </div>
-                    <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span>{article.comment_count} 评论</span>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="border-2 border-gray-200 p-8 bg-white">
+      <h1 className="text-3xl font-bold mb-4 text-gray-900">{article.title}</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="px-4 py-1.5 bg-blue-50 text-blue-600 text-xl border-2 border-blue-200">
+            {article.category}
+          </div>
+          <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
+            发布于{new Date(article.created_at).toLocaleDateString()}
+          </div>
+          <div className="text-xl text-gray-500 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
+            更新于{new Date(article.updated_at).toLocaleDateString()}
+          </div>
         </div>
-    );
+        <div className="flex items-center space-x-4 text-gray-500 text-xl">
+          <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            <span>{article.look_count} 阅读</span>
+          </div>
+          <div className="flex items-center space-x-1 px-4 py-1.5 border-2 border-gray-200 bg-gray-50">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            <span>{article.comment_count} 评论</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-// 返回顶部组件
+// 返回顶部按钮组件
 const BackToTop = () => {
-    return (
-        <BackTop visibilityHeight={100}>
-            <div className="fixed bottom-8 right-8 bg-blue-500 hover:bg-blue-600 
+  return (
+    <BackTop visibilityHeight={100}>
+      <div
+        className="fixed bottom-8 right-8 bg-blue-500 hover:bg-blue-600 
                           text-white w-10 h-10 rounded-full flex items-center 
                           justify-center cursor-pointer shadow-lg 
-                          transition-all duration-300 ease-in-out">
-                <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 10l7-7m0 0l7 7m-7-7v18"
-                    />
-                </svg>
-            </div>
-        </BackTop>
-    );
+                          transition-all duration-300 ease-in-out"
+      >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 10l7-7m0 0l7 7m-7-7v18"
+          />
+        </svg>
+      </div>
+    </BackTop>
+  );
 };
 
 // 文章详情页主组件
 export const ArticleDetail = () => {
-    const { id } = useParams<{ id: string }>();
-    const [article, setArticle] = useState<articleType | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [comments, setComments] = useState<commentType[]>([]);
+  const { id } = useParams<{ id: string }>();
+  const [article, setArticle] = useState<articleType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState<commentType[]>([]);
 
-    // 获取文章详情
-    const fetchArticleDetail = useCallback(async () => {
-        try {
-            setLoading(true);
-            const res = await articleDetail(id as string);
-            if (res.code === 2000) {
-                setArticle(res.data);
-            } else {
-                message.error(res.msg);
-            }
-        } catch (error) {
-            message.error('获取文章详情失败');
-            console.error('获取文章详情失败:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    // 获取评论列表
-    const fetchComments = useCallback(async () => {
-        if (!id) return;
-        try {
-            const res = await commentList({ article_id: id });
-            if (res.code === 2000) {
-                console.log(res.data);
-                setComments(res.data);
-            } else {
-                message.error(res.msg);
-            }
-        } catch (error) {
-            message.error('获取评论列表失败');
-            console.error('获取评论列表失败:', error);
-        }
-    }, [id]);
-
-    // 初始化数据
-    useEffect(() => {
-        fetchArticleDetail();
-        fetchComments();
-    }, [id, fetchComments]);
-
-    // 添加 Markdown 样式
-    useEffect(() => {
-        const styleSheet = document.createElement("style");
-        styleSheet.innerText = styles;
-        document.head.appendChild(styleSheet);
-        return () => {
-            document.head.removeChild(styleSheet);
-        };
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="p-8">
-                <Skeleton
-                    active
-                    avatar
-                    paragraph={{ rows: 10 }}
-                    className="max-w-4xl mx-auto"
-                />
-            </div>
-        );
+  // 获取文章详情数据
+  const fetchArticleDetail = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await articleDetail(id as string);
+      if (res.code === 0) {
+        setArticle(res.data);
+      } else {
+        message.error(res.message);
+      }
+    } catch (error) {
+      message.error("获取文章详情失败");
+      console.error("获取文章详情失败:", error);
+    } finally {
+      setLoading(false);
     }
+  }, [id]);
 
-    if (!article) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Empty
-                    description="文章不存在"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                />
-            </div>
-        );
+  // 获取评论列表数据
+  const fetchComments = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await commentList({ article_id: id });
+      if (res.code === 0) {
+        setComments(res.data);
+      } else {
+        message.error(res.message);
+      }
+    } catch (error) {
+      message.error("获取评论列表失败");
+      console.error("获取评论列表失败:", error);
     }
+  }, [id]);
 
+  // 组件初始化时加载数据
+  useEffect(() => {
+    fetchArticleDetail();
+    fetchComments();
+  }, [id, fetchComments]);
+
+  // 动态注入 Markdown 样式
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = styles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
+
+  // 渲染加载状态
+  if (loading) {
     return (
-        <div className="flex justify-center w-full bg-gray-50 py-8">
-            <div className="max-w-[1500px] w-full px-4">
-                <Row gutter={24}>
-                    <Col span={18}>
-                        <div className="bg-white shadow-sm">
-                            <ArticleHeader article={article} />
-                            <div className="border-x-2 border-gray-200">
-                                <MarkdownViewer content={article.content} />
-                            </div>
-                            <div className="border-2 border-gray-200">
-                                <CommentArea
-                                    comments={comments}
-                                    onCommentSuccess={fetchComments}
-                                />
-                            </div>
-                        </div>
-                        <BackToTop />
-                    </Col>
-
-                    <Col span={6} className="sticky top-4" style={{ height: 'fit-content' }}>
-                        <div className="border-2 border-gray-200 bg-white shadow-sm mb-4">
-                            <ArticleSearch />
-                        </div>
-                        {article && (
-                            <div className="border-2 border-gray-200 bg-white shadow-sm">
-                                <h3 className="px-6 py-4 text-lg font-medium border-b-2 border-gray-200">
-                                    文章目录
-                                </h3>
-                                <nav className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-                                    {extractHeadings(article.content).map((heading) => (
-                                        <a
-                                            key={heading.key}
-                                            href={heading.href}
-                                            className={`
-                                                block py-2 text-gray-600 hover:bg-gray-50 px-4
-                                                ${heading.level === 1 ? 'text-base font-medium' : ''}
-                                                ${heading.level === 2 ? 'pl-8 text-[15px]' : ''}
-                                                ${heading.level === 3 ? 'pl-12 text-[14px] text-gray-500' : ''}
-                                                ${heading.level === 4 ? 'pl-16 text-[13px] text-gray-500' : ''}
-                                                ${heading.level === 5 ? 'pl-20 text-[13px] text-gray-500' : ''}
-                                                ${heading.level === 6 ? 'pl-24 text-[13px] text-gray-500' : ''}
-                                            `}
-                                        >
-                                            <span className="flex items-center">
-                                                <span className={`
-                                                    inline-block w-1.5 h-1.5 mr-2
-                                                    ${heading.level === 1 ? 'bg-blue-500' : ''}
-                                                    ${heading.level === 2 ? 'bg-blue-400' : ''}
-                                                    ${heading.level === 3 ? 'bg-gray-400' : ''}
-                                                    ${heading.level >= 4 ? 'bg-gray-300' : ''}
-                                                `}></span>
-                                                {heading.title}
-                                            </span>
-                                        </a>
-                                    ))}
-                                </nav>
-                            </div>
-                        )}
-                    </Col>
-                </Row>
-            </div>
-        </div>
+      <div className="p-8">
+        <Skeleton
+          active
+          avatar
+          paragraph={{ rows: 10 }}
+          className="max-w-4xl mx-auto"
+        />
+      </div>
     );
+  }
+
+  // 渲染文章不存在状态
+  if (!article) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Empty description="文章不存在" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      </div>
+    );
+  }
+  
+  // 渲染文章详情页面
+  return (
+    <div className="flex justify-center w-full bg-gray-50 py-8">
+      <div className="max-w-[1500px] w-full px-4">
+        <Row gutter={24}>
+          <Col span={18}>
+            <div className="bg-white shadow-sm">
+              <ArticleHeader article={article} />
+              <div className="border-x-2 border-gray-200">
+                <MarkdownViewer content={article.content} />
+              </div>
+              <div className="border-2 border-gray-200">
+                <CommentArea
+                  comments={comments}
+                  onCommentSuccess={fetchComments}
+                />
+              </div>
+            </div>
+            <BackToTop />
+          </Col>
+
+          <Col
+            span={6}
+            className="sticky top-4"
+            style={{ height: "fit-content" }}
+          >
+            <div className="border-2 border-gray-200 bg-white shadow-sm mb-4">
+              <ArticleSearch />
+            </div>
+            {article && (
+              <div className="border-2 border-gray-200 bg-white shadow-sm">
+                <h3 className="px-6 py-4 text-lg font-medium border-b-2 border-gray-200">
+                  文章目录
+                </h3>
+                <nav className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+                  {extractHeadings(article.content).map((heading) => (
+                    <a
+                      key={heading.key}
+                      href={heading.href}
+                      className={`
+                                                block py-2 text-gray-600 hover:bg-gray-50 px-4
+                                                ${
+                                                  heading.level === 1
+                                                    ? "text-base font-medium"
+                                                    : ""
+                                                }
+                                                ${
+                                                  heading.level === 2
+                                                    ? "pl-8 text-[15px]"
+                                                    : ""
+                                                }
+                                                ${
+                                                  heading.level === 3
+                                                    ? "pl-12 text-[14px] text-gray-500"
+                                                    : ""
+                                                }
+                                                ${
+                                                  heading.level === 4
+                                                    ? "pl-16 text-[13px] text-gray-500"
+                                                    : ""
+                                                }
+                                                ${
+                                                  heading.level === 5
+                                                    ? "pl-20 text-[13px] text-gray-500"
+                                                    : ""
+                                                }
+                                                ${
+                                                  heading.level === 6
+                                                    ? "pl-24 text-[13px] text-gray-500"
+                                                    : ""
+                                                }
+                                            `}
+                    >
+                      <span className="flex items-center">
+                        <span
+                          className={`
+                                                    inline-block w-1.5 h-1.5 mr-2
+                                                    ${
+                                                      heading.level === 1
+                                                        ? "bg-blue-500"
+                                                        : ""
+                                                    }
+                                                    ${
+                                                      heading.level === 2
+                                                        ? "bg-blue-400"
+                                                        : ""
+                                                    }
+                                                    ${
+                                                      heading.level === 3
+                                                        ? "bg-gray-400"
+                                                        : ""
+                                                    }
+                                                    ${
+                                                      heading.level >= 4
+                                                        ? "bg-gray-300"
+                                                        : ""
+                                                    }
+                                                `}
+                        ></span>
+                        {heading.title}
+                      </span>
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            )}
+          </Col>
+        </Row>
+      </div>
+    </div>
+  );
 };
