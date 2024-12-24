@@ -1,31 +1,31 @@
 ﻿import { useEffect, useState } from "react";
 
+import { paramsType } from "@/api";
 import {
-  Table,
+  articleCreate,
+  articleDelete,
+  articleList,
+  articleType,
+  articleUpdate,
+} from "@/api/article";
+import { categoryList, categoryType } from "@/api/category";
+import { imageList, imageType } from "@/api/image";
+import { PlusOutlined } from "@ant-design/icons";
+import {
   Button,
-  Modal,
   Form,
   Input,
   message,
-  Space,
+  Modal,
   Select,
+  Space,
   Spin,
+  Table,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import MdEditor from "react-markdown-editor-lite";
-import MarkdownIt from "markdown-it";
-import "react-markdown-editor-lite/lib/index.css";
-import { imageList, imageType } from "@/api/image";
-import {
-  articleType,
-  articleList,
-  articleDelete,
-  articleUpdate,
-  articleCreate,
-} from "@/api/article";
 import { ColumnsType } from "antd/es/table";
-import { categoryList, categoryType } from "@/api/category";
-import { paramsType } from "@/api";
+import MarkdownIt from "markdown-it";
+import MdEditor from "react-markdown-editor-lite";
+import "react-markdown-editor-lite/lib/index.css";
 
 interface PaginationState extends paramsType {
   total: number;
@@ -379,80 +379,78 @@ export const AdminArticle = () => {
             />
           </Form.Item>
 
-          {/* 封面选择区域 */}
           <Form.Item
             label="文章封面"
             name="cover_id"
             rules={[{ required: true, message: "请选择文章封面" }]}
           >
             <div className="flex flex-col gap-4">
-              {/* 图片列表容器 */}
-              <div className="flex flex-wrap gap-4 min-h-[100px] p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                {images.length > 0 ? (
-                  images.map((image) => (
-                    <div
-                      key={image.id}
-                      onClick={() => handleSelectCover(image.id)}
-                      className={`
-                                                relative w-24 h-24 cursor-pointer rounded-lg overflow-hidden
-                                                ${
-                                                  selectedCoverId === image.id
-                                                    ? "ring-2 ring-blue-500 ring-offset-2"
-                                                    : "border border-gray-200 hover:border-blue-300"
-                                                }
-                                                transition-all duration-200 group
-                                            `}
-                    >
-                      <img
-                        src={image.path}
-                        alt={image.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      {/* 选中状态遮罩 */}
-                      {selectedCoverId === image.id && (
-                        <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                          <div className="bg-white rounded-full p-1">
-                            <svg
-                              className="w-4 h-4 text-blue-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+              <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto">
+                <div className="flex flex-wrap gap-4 max-h-[400px] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  {images.length > 0 ? (
+                    images.map((image) => (
+                      <div
+                        key={image.id}
+                        onClick={() => handleSelectCover(image.id)}
+                        className={`
+                          relative w-48 h-27 flex-shrink-0 cursor-pointer rounded-lg overflow-hidden
+                          ${
+                            selectedCoverId === image.id
+                              ? "ring-2 ring-blue-500 ring-offset-2"
+                              : "border border-gray-200 hover:border-blue-300"
+                          }
+                          transition-all duration-200 group
+                        `}
+                      >
+                        <img
+                          src={image.path}
+                          alt={image.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {/* 选中状态遮罩 */}
+                        {selectedCoverId === image.id && (
+                          <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                            <div className="bg-white rounded-full p-1">
+                              <svg
+                                className="w-4 h-4 text-blue-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="w-full h-32 flex flex-col items-center justify-center text-gray-400">
+                      <svg
+                        className="w-8 h-8 mb-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span>暂无可选择的图片</span>
                     </div>
-                  ))
-                ) : (
-                  // 无图片时的提示
-                  <div className="w-full h-32 flex flex-col items-center justify-center text-gray-400">
-                    <svg
-                      className="w-8 h-8 mb-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span>暂无可选择的图片</span>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              {/* 提示文本 */}
-              <div className="text-sm text-gray-500">
-                点击图片选择作为文章封面，建议尺寸 16:9
+                <div className="text-sm text-gray-500">
+                  点击图片选择作为文章封面，建议尺寸 16:9
+                </div>
               </div>
             </div>
           </Form.Item>
