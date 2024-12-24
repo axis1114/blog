@@ -3,11 +3,13 @@ import { router } from "./router/index";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import { initializeFromStorage } from "./store/slice";
-import { Spin } from 'antd';
-import { RootState } from './store/index';
+import { Spin } from "antd";
+import { RootState } from "./store/index";
 
 export const App = () => {
-  const isInitialized = useSelector((state: RootState) => state.web.isInitialized);
+  const isInitialized = useSelector(
+    (state: RootState) => state.web.isInitialized
+  );
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -28,4 +30,3 @@ export const App = () => {
     </div>
   );
 };
-

@@ -2,7 +2,7 @@
 import { AuthGuard } from "@/components/authguard/authguard";
 import { ArticleDetail } from "@/components/detail/detail";
 import { AdminLogin } from "@/components/login/login";
-import { NotFound } from '@/components/notfound/notfound';
+import { NotFound } from "@/components/notfound/notfound";
 import { AdminArticle } from "@/view/backend/artilce";
 import { AdminCategory } from "@/view/backend/category";
 import { AdminComment } from "@/view/backend/comment";
@@ -13,6 +13,7 @@ import { AdminIndex } from "@/view/backend/index";
 import { AdminSetting } from "@/view/backend/setting";
 import { AdminUser } from "@/view/backend/user";
 import { WebHome } from "@/view/frontend/home";
+import { WebAbout } from "@/view/frontend/about";
 import { WebIndex } from "@/view/frontend/index";
 import { createBrowserRouter, RouteObject } from "react-router-dom";
 
@@ -29,7 +30,7 @@ export type RouteType = RouteObject &
     children?: RouteType[]; // 子路由配置
   };
 
-// 路由配置数组
+// 路由配置数组s
 export const routerObj: RouteType[] = [
   {
     path: "/", // 前台根路由
@@ -37,6 +38,7 @@ export const routerObj: RouteType[] = [
     children: [
       { path: "", element: <WebHome /> }, // 前台首页
       { path: "article/:id", element: <ArticleDetail /> }, // 文章详情页
+      { path: "about", element: <WebAbout /> }, // 关于我们
     ],
   },
   {
@@ -46,7 +48,7 @@ export const routerObj: RouteType[] = [
   {
     path: "/admin", // 后台管理根路由
     element: (
-      <AuthGuard> // 权限守卫组件，用于验证用户是否有权限访问后台
+      <AuthGuard>
         <AdminIndex />
       </AuthGuard>
     ),
