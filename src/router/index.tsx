@@ -15,6 +15,7 @@ import { AdminUser } from "@/view/backend/user";
 import { WebHome } from "@/view/frontend/home";
 import { WebAbout } from "@/view/frontend/about";
 import { WebIndex } from "@/view/frontend/index";
+import { WebArchives } from "@/view/frontend/archives";
 import { createBrowserRouter, RouteObject } from "react-router-dom";
 
 // 定义基础路由类型，包含元数据接口
@@ -38,6 +39,7 @@ export const routerObj: RouteType[] = [
     children: [
       { path: "", element: <WebHome /> }, // 前台首页
       { path: "article/:id", element: <ArticleDetail /> }, // 文章详情页
+      { path: "archives", element: <WebArchives /> }, // 归档
       { path: "about", element: <WebAbout /> }, // 关于我们
     ],
   },

@@ -67,9 +67,7 @@ export const WebAbout = () => {
               <Title level={3} className="text-blue-600">
                 个人介绍
               </Title>
-              <Paragraph className="text-gray-600">
-                无业游民，喜欢编程，喜欢折腾，喜欢分享。
-              </Paragraph>
+              <Paragraph className="text-gray-600"></Paragraph>
             </Card>
           </div>
 

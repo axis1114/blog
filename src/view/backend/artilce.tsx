@@ -9,6 +9,7 @@ import {
   message,
   Space,
   Select,
+  Spin,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import MdEditor from "react-markdown-editor-lite";
@@ -24,6 +25,11 @@ import {
 } from "@/api/article";
 import { ColumnsType } from "antd/es/table";
 import { categoryList, categoryType } from "@/api/category";
+import { paramsType } from "@/api";
+
+interface PaginationState extends paramsType {
+  total: number;
+}
 
 const mdParser = new MarkdownIt();
 
@@ -31,9 +37,9 @@ export const AdminArticle = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<articleType[]>([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    page_size: 10,
     total: 0,
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -47,20 +53,22 @@ export const AdminArticle = () => {
   const [categories, setCategories] = useState<categoryType[]>([]);
 
   // 获取文章列表
-  const fetchData = async (page = 1) => {
+  const fetchData = async (
+    page = pagination.page,
+    page_size = pagination.page_size
+  ) => {
     try {
       setLoading(true);
       const res = await articleList({
         page,
-        page_size: pagination.pageSize,
+        page_size,
       });
       if (res.code === 0) {
         setData(res.data.list);
-        setPagination({
-          ...pagination,
-          current: page,
+        setPagination((prev) => ({
+          ...prev,
           total: res.data.total,
-        });
+        }));
       } else {
         message.error(res.message);
       }
@@ -84,7 +92,7 @@ export const AdminArticle = () => {
           const response = await articleDelete({ id_list: id });
           if (response.code === 0) {
             message.success("删除成功");
-            fetchData(pagination.current);
+            fetchData(pagination.page, pagination.page_size);
           } else {
             message.error(response.message);
           }
@@ -129,7 +137,7 @@ export const AdminArticle = () => {
   // 获取图片列表
   const fetchImages = async () => {
     try {
-      const res = await imageList({ page: 1, page_size: 20 });
+      const res = await imageList({ page: 1, page_size: 999 });
       if (res.code === 0) {
         setImages(res.data.list);
       } else {
@@ -144,7 +152,7 @@ export const AdminArticle = () => {
   // 获取分类列表
   const fetchCategories = async () => {
     try {
-      const res = await categoryList({ page: 1, page_size: 100 });
+      const res = await categoryList({ page: 1, page_size: 999 });
       if (res.code === 0) {
         setCategories(res.data.list);
       } else {
@@ -158,7 +166,7 @@ export const AdminArticle = () => {
 
   // 在组件加载时获取图片列表
   useEffect(() => {
-    fetchData();
+    fetchData(pagination.page, pagination.page_size);
     fetchImages();
     fetchCategories();
   }, []);
@@ -204,7 +212,7 @@ export const AdminArticle = () => {
       }
 
       handleCancel();
-      fetchData(pagination.current);
+      fetchData(pagination.page, pagination.page_size);
     } catch (error) {
       console.error("提交表单失败:", error);
       message.error(editingArticle ? "更新失败" : "创建失败");
@@ -255,6 +263,23 @@ export const AdminArticle = () => {
     },
   ];
 
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      page,
+      page_size: pageSize || prev.page_size,
+    }));
+    fetchData(page, pageSize);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-60px)]">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div style={{ minHeight: "100%" }}>
       {/* 头部区域 */}
@@ -284,13 +309,21 @@ export const AdminArticle = () => {
           columns={columns}
           dataSource={data}
           rowKey="id"
-          pagination={pagination}
+          pagination={{
+            position: ["bottomCenter"],
+            current: pagination.page,
+            pageSize: pagination.page_size,
+            total: pagination.total,
+            onChange: handlePageChange,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+            className: "py-8",
+          }}
           loading={loading}
-          onChange={(pagination) => fetchData(pagination.current)}
         />
       </div>
 
-      {/* 模态框 */}
       <Modal
         title={editingArticle ? "编辑文章" : "新建文章"}
         open={isModalVisible}

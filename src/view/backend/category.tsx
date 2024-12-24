@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, message, Space } from "antd";
+import { Table, Button, Modal, Form, Input, message, Space, Spin } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import {
   categoryType,
@@ -29,20 +29,22 @@ export const AdminCategory = () => {
   });
 
   // 获取分类列表数据
-  const fetchData = async (page = 1) => {
+  const fetchData = async (
+    page = pagination.page,
+    page_size = pagination.page_size
+  ) => {
     try {
       setLoading(true);
       const res = await categoryList({
         page,
-        page_size: pagination.page_size,
+        page_size,
       });
       if (res.code === 0) {
         setData(res.data.list);
-        setPagination({
-          ...pagination,
-          page,
+        setPagination((prev) => ({
+          ...prev,
           total: res.data.total,
-        });
+        }));
       } else {
         message.error(res.message);
       }
@@ -81,6 +83,15 @@ export const AdminCategory = () => {
         }
       },
     });
+  };
+
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      page,
+      page_size: pageSize || prev.page_size,
+    }));
+    fetchData(page, pageSize);
   };
 
   // 模态框相关操作
@@ -154,8 +165,16 @@ export const AdminCategory = () => {
 
   // 初始化加载数据
   useEffect(() => {
-    fetchData();
+    fetchData(pagination.page, pagination.page_size);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-60px)]">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100%" }}>
@@ -187,12 +206,17 @@ export const AdminCategory = () => {
           dataSource={data}
           rowKey="id"
           pagination={{
-            ...pagination,
             position: ["bottomCenter"],
-            style: { marginTop: "16px" },
+            current: pagination.page,
+            pageSize: pagination.page_size,
+            total: pagination.total,
+            onChange: handlePageChange,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+            className: "py-8",
           }}
           loading={loading}
-          onChange={(pagination) => fetchData(pagination.current)}
         />
       </div>
 

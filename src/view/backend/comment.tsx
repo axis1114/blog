@@ -4,54 +4,49 @@ import { CommentArea } from "../../components/comment/comment";
 import { articleList, articleType } from "../../api/article";
 import { commentList, commentType } from "../../api/comment";
 import { SearchOutlined } from "@ant-design/icons";
+import { paramsType } from "@/api";
 
-// 自定义 Hook，用于管理分页状态和逻辑
-const usePagination = (initialCurrent = 1, initialPageSize = 10) => {
-  const [current, setCurrent] = useState(initialCurrent);
-  const [pageSize, setPageSize] = useState(initialPageSize);
-  const [total, setTotal] = useState(0);
-
-  const handleChange = useCallback((page: number, size: number) => {
-    setCurrent(page);
-    setPageSize(size);
-  }, []);
-
-  return {
-    current,
-    pageSize,
-    total,
-    setTotal,
-    handleChange,
-  };
-};
+interface PaginationState extends paramsType {
+  total: number;
+}
 
 export const AdminComment = () => {
   const [selectedArticleId, setSelectedArticleId] = useState("");
   const [articles, setArticles] = useState<articleType[]>([]);
   const [comments, setComments] = useState<commentType[]>([]);
-  const pagination = usePagination();
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    page_size: 10,
+    total: 0,
+  });
 
   useEffect(() => {
-    fetchArticles();
-  }, [pagination.current, pagination.pageSize]);
+    fetchArticles(pagination.page, pagination.page_size);
+  }, []);
 
-  const fetchArticles = useCallback(async () => {
-    try {
-      const res = await articleList({
-        page: pagination.current,
-        page_size: pagination.pageSize,
-      });
-      if (res.code === 0) {
-        setArticles(res.data.list);
-        pagination.setTotal(res.data.total);
-      } else {
-        message.error(res.message);
+  const fetchArticles = useCallback(
+    async (page = pagination.page, page_size = pagination.page_size) => {
+      try {
+        const res = await articleList({
+          page,
+          page_size,
+        });
+        if (res.code === 0) {
+          setArticles(res.data.list);
+          setPagination((prev) => ({
+            ...prev,
+            total: res.data.total,
+          }));
+        } else {
+          message.error(res.message);
+        }
+      } catch (error) {
+        message.error("获取文章列表失败");
+        console.error("获取文章列表失败:", error);
       }
-    } catch (error) {
-      message.error("获取文章列表失败");
-      console.error("获取文章列表失败:", error);
-    }
-  }, [pagination]);
+    },
+    [pagination]
+  );
 
   const handleArticleClick = useCallback(async (articleId: string) => {
     setSelectedArticleId(articleId);
@@ -73,12 +68,15 @@ export const AdminComment = () => {
       try {
         const res = await articleList({
           page: 1,
-          page_size: pagination.pageSize,
+          page_size: pagination.page_size,
           key: value,
         });
         if (res.code === 0) {
           setArticles(res.data.list);
-          pagination.setTotal(res.data.total);
+          setPagination((prev) => ({
+            ...prev,
+            total: res.data.total,
+          }));
         } else {
           message.error(res.message);
         }
@@ -104,6 +102,15 @@ export const AdminComment = () => {
       console.error("获取评论列表失败:", error);
     }
   }, [selectedArticleId]);
+
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      page,
+      page_size: pageSize || prev.page_size,
+    }));
+    fetchArticles(page, pageSize);
+  };
 
   const articleListElement = useMemo(
     () => (
@@ -134,10 +141,10 @@ export const AdminComment = () => {
         />
         <div className="px-4 py-2 flex justify-center">
           <Pagination
-            current={pagination.current}
-            pageSize={pagination.pageSize}
+            current={pagination.page}
+            pageSize={pagination.page_size}
             total={pagination.total}
-            onChange={pagination.handleChange}
+            onChange={handlePageChange}
             simple
           />
         </div>

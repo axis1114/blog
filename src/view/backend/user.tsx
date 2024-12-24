@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Table, Button, Modal, Form, Input, message, Space } from "antd";
+import { Table, Button, Modal, Form, Input, message, Space, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   userList,
@@ -9,15 +9,19 @@ import {
   userDelete,
 } from "@/api/user";
 import { PlusOutlined } from "@ant-design/icons";
+import { paramsType } from "@/api";
+interface PaginationState extends paramsType {
+  total: number;
+}
 
 export const AdminUser = () => {
   const [users, setUsers] = useState<userInfoType[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    page_size: 10,
     total: 0,
   });
   const [editingUser, setEditingUser] = useState<userInfoType | null>(null);
@@ -76,7 +80,10 @@ export const AdminUser = () => {
     },
   ];
 
-  const fetchUsers = async (page = 1, pageSize = 10) => {
+  const fetchUsers = async (
+    page = pagination.page,
+    pageSize = pagination.page_size
+  ) => {
     try {
       setLoading(true);
       const response = await userList({
@@ -85,12 +92,10 @@ export const AdminUser = () => {
       });
       if (response.code === 0) {
         setUsers(response.data.list);
-        setPagination({
-          ...pagination,
-          current: page,
-          pageSize: pageSize,
+        setPagination((prev) => ({
+          ...prev,
           total: response.data.total,
-        });
+        }));
       }
     } catch (error) {
       message.error("获取用户列表失败");
@@ -108,7 +113,7 @@ export const AdminUser = () => {
         message.success("创建用户成功");
         setIsModalVisible(false);
         form.resetFields();
-        fetchUsers(pagination.current, pagination.pageSize);
+        fetchUsers(pagination.page, pagination.page_size);
       } else {
         message.error(response.message);
       }
@@ -120,12 +125,17 @@ export const AdminUser = () => {
     }
   };
 
-  const handleTableChange = (newPagination: any) => {
-    fetchUsers(newPagination.current, newPagination.pageSize);
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      page,
+      page_size: pageSize || prev.page_size,
+    }));
+    fetchUsers(page, pageSize);
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(pagination.page, pagination.page_size);
   }, []);
 
   const showModal = (record?: userInfoType) => {
@@ -163,7 +173,7 @@ export const AdminUser = () => {
           const response = await userDelete(id);
           if (response.code === 0) {
             message.success("删除成功");
-            fetchUsers(pagination.current, pagination.pageSize);
+            fetchUsers(pagination.page, pagination.page_size);
           } else {
             message.error(response.message);
           }
@@ -174,6 +184,14 @@ export const AdminUser = () => {
       },
     });
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-60px)]">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100%" }}>
@@ -203,8 +221,17 @@ export const AdminUser = () => {
           dataSource={users}
           rowKey="id"
           loading={loading}
-          pagination={pagination}
-          onChange={handleTableChange}
+          pagination={{
+            position: ["bottomCenter"],
+            current: pagination.page,
+            pageSize: pagination.page_size,
+            total: pagination.total,
+            onChange: handlePageChange,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+            className: "py-8",
+          }}
         />
       </div>
 

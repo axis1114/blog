@@ -1,6 +1,9 @@
 ﻿import { EyeOutlined, MessageOutlined } from "@ant-design/icons";
 import { Col, List, Row, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
+import { Spin } from "antd";
+import { Empty } from "antd";
+import { message } from "antd";
 import { articleList, articleParamsType, articleType } from "../../api/article";
 import { FriendLinkList } from "../../components/friendlink/friendlink";
 import { ArticleFilter } from "../../components/search/articlefilter";
@@ -40,16 +43,22 @@ export const WebHome = () => {
         key: pagination.key,
       };
       const res = await articleList(params);
-      setArticles(res.data.list);
-      setPagination((prev) => ({
-        ...prev,
-        total: res.data.total,
-        category: category,
-      }));
+      if (res.code === 0) {
+        setArticles(res.data.list);
+        setPagination((prev) => ({
+          ...prev,
+          total: res.data.total,
+          category: category,
+        }));
+      } else {
+        message.error(res.message);
+      }
     } catch (error) {
       console.error("获取文章列表失败:", error);
+      message.error("获取文章列表失败");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
@@ -64,8 +73,25 @@ export const WebHome = () => {
   useEffect(() => {
     fetchArticles();
   }, []);
+
+  if (articles.length === 0) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-100px)]">
+        <Empty description="暂无文章" />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-100px)]">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex justify-center w-full bg-gradient-to-b from-gray-50 to-white">
+    <div className="flex justify-center w-full bg-gradient-to-b from-gray-50 to-white ">
       <div className="max-w-[1500px] w-full px-4">
         <Row gutter={24}>
           <Col span={19}>
