@@ -33,7 +33,7 @@ func GenerateAccessToken(payload PayLoad) (string, error) {
 	claims := CustomClaims{
 		PayLoad: payload,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+			ExpiresAt: time.Now().Add(1 * time.Minute).Unix(),
 			Issuer:    global.Config.Jwt.Issuer,
 		},
 	}
@@ -79,6 +79,18 @@ func ParseToken(tokenString string) (*CustomClaims, error) {
 	}
 
 	return &claims, nil
+}
+
+// 解析过期token
+func ParseExpiredToken(tokenString string) (*CustomClaims, error) {
+	token, _ := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(global.Config.Jwt.Secret), nil
+	})
+
+	if claims, ok := token.Claims.(*CustomClaims); ok {
+		return claims, nil
+	}
+	return nil, errors.New("无法解析token")
 }
 
 // RefreshToken 刷新访问令牌和刷新令牌

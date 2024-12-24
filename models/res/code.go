@@ -21,11 +21,12 @@ const (
 	InvalidJSON      ResponseCode = 1103 // JSON解析错误
 
 	// 认证授权错误 (1200-1299)
-	TokenExpired     ResponseCode = 1200 // 令牌过期
-	TokenInvalid     ResponseCode = 1201 // 令牌无效
-	TokenMissing     ResponseCode = 1202 // 缺少令牌
-	SignatureInvalid ResponseCode = 1203 // 签名无效
-	PermissionDenied ResponseCode = 1204 // 权限不足
+	TokenExpired       ResponseCode = 1200 // 令牌过期
+	TokenInvalid       ResponseCode = 1201 // 令牌无效
+	TokenMissing       ResponseCode = 1202 // 缺少令牌
+	SignatureInvalid   ResponseCode = 1203 // 签名无效
+	PermissionDenied   ResponseCode = 1204 // 权限不足
+	TokenRefreshFailed ResponseCode = 1205 // 令牌刷新失败
 
 	// 服务端错误码 (2000-2999)
 	// 通用服务端错误 (2000-2099)

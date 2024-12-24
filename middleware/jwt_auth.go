@@ -25,18 +25,28 @@ func JwtAuth() gin.HandlerFunc {
 		// 解析 Token
 		claims, err := utils.ParseToken(tokenString)
 		if err != nil {
-			if err.Error() == "token已过期" && claims != nil {
-				// Token 已过期，尝试刷新
-				newAccessToken, refreshErr := utils.RefreshAccessToken(tokenString, claims.UserID)
-				if refreshErr != nil || newAccessToken == "" {
-					global.Log.Error("utils.RefreshAccessToken failed", zap.Error(refreshErr))
-					res.HttpError(c, http.StatusUnauthorized, res.TokenExpired, "token已过期")
+			if err.Error() == "token已过期" {
+				// 尝试从过期的token中解析出用户ID
+				expiredClaims, parseErr := utils.ParseExpiredToken(tokenString)
+				if parseErr != nil {
+					global.Log.Error("utils.ParseExpiredToken() failed", zap.Error(parseErr))
+					res.HttpError(c, http.StatusUnauthorized, res.TokenRefreshFailed, "token已过期且无法刷新")
 					c.Abort()
 					return
 				}
+
+				// 使用解析出的用户ID尝试刷新token
+				newAccessToken, refreshErr := utils.RefreshAccessToken(tokenString, expiredClaims.UserID)
+				if refreshErr != nil || newAccessToken == "" {
+					global.Log.Error("utils.RefreshAccessToken() failed", zap.Error(refreshErr))
+					res.HttpError(c, http.StatusUnauthorized, res.TokenRefreshFailed, "token刷新失败")
+					c.Abort()
+					return
+				}
+
 				// 刷新成功，将新的 Token 设置到响应头中
-				c.Request.Header.Set("Authorization", "Bearer "+newAccessToken)
-				c.Set("claims", claims)
+				c.Header("New-Access-Token", newAccessToken) // 建议通过响应头返回新token
+				c.Set("claims", expiredClaims)
 				c.Next()
 				return
 			}
