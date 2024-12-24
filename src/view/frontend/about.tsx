@@ -28,12 +28,12 @@ export const WebAbout = () => {
     },
     {
       icon: <GithubOutlined />,
-      text: "我的Github",
+      text: "Github",
       action: "https://github.com/nsxz",
     },
     {
       icon: <BilibiliOutlined />,
-      text: "我的B站",
+      text: "B站",
       action: "https://space.bilibili.com/1966087641?spm_id_from=333.1007.0.0",
     },
   ];

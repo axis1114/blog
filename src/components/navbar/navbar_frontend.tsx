@@ -5,7 +5,7 @@ const { Header } = Layout;
 export const NavbarFrontend = () => {
   const navItems = [
     { label: "首页", key: "/", path: "/" },
-    { label: "项目", key: "/projects", path: "/projects" },
+    { label: "归档", key: "/archives", path: "/archives" },
     { label: "关于", key: "/about", path: "/about" },
   ];
 
