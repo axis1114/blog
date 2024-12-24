@@ -8,7 +8,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
       - cluster.name=docker-cluster
     ulimits:
       memlock:
@@ -23,18 +23,20 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
 
   redis:
     image: "redis:5.0.7"
     restart: always
     ports:
       - "127.0.0.1:6379:6379"
-    command: ["redis-server", "--requirepass", "redis"]
+    command: [ "redis-server", "--requirepass", "redis", "--maxmemory", "32mb", "--maxmemory-policy", "allkeys-lru" ]
     deploy:
       resources:
         limits:
-          memory: 64M
+          memory: 32M
+          cpus: '0.2'
+
   mysql:
     image: mysql:8.0.32-debian
     restart: always
@@ -50,4 +52,4 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 384M
