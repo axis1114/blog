@@ -83,7 +83,7 @@ export const AdminUser = () => {
         page,
         page_size: pageSize,
       });
-      if (response.code === 2000) {
+      if (response.code === 0) {
         setUsers(response.data.list);
         setPagination({
           ...pagination,
