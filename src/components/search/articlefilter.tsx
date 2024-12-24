@@ -79,6 +79,10 @@ export const ArticleFilter = ({ onSearch }: ArticleFilterProps) => {
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="bg-white">
       <div className="p-8 space-y-4">

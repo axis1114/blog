@@ -36,6 +36,10 @@ export const ArticleSearch = () => {
     window.location.href = `/article/${option.key}`;
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="p-8">
       <AutoComplete
