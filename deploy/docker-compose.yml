@@ -1,55 +1,35 @@
 version: "3"
+
 services:
-  es:
-    image: "elasticsearch:8.9.0"
-    ports:
-      - "127.0.0.1:9200:9200"
-    restart: always
+  elasticsearch:
+    container_name: elasticsearch
+    image: elasticsearch:8.9.1
     environment:
+      - node.name=elasticsearch
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
-      - cluster.name=docker-cluster
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - ./es/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-      - ./es/data:/usr/share/elasticsearch/data
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
-  redis:
-    image: "redis:5.0.7"
-    restart: always
     ports:
-      - "127.0.0.1:6379:6379"
-    command: [ "redis-server", "--requirepass", "redis", "--maxmemory", "32mb", "--maxmemory-policy", "allkeys-lru" ]
-    deploy:
-      resources:
-        limits:
-          memory: 32M
-          cpus: '0.2'
+      - 9200:9200
+      - 9300:9300
+    restart: always
 
   mysql:
-    image: mysql:8.0.32-debian
-    restart: always
+    image: mysql:8.0-debian
+    container_name: mysql
     command: --default-authentication-plugin=mysql_native_password
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: blog
+      MYSQL_ROOT_PASSWORD: root # root密码
+      MYSQL_DATABASE: blog # 初始数据库
+      TZ: Asia/Shanghai # 时区
     ports:
-      - "127.0.0.1:3306:3306"
-    volumes:
-      - ./mysql/conf:/etc/mysql/conf.d
-      - ./mysql/datadir:/var/lib/mysql
-    deploy:
-      resources:
-        limits:
-          memory: 384M
+      - "3306:3306" # 端口映射
+
+  redis:
+    image: redis:7.4.1
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis
+    restart: always
