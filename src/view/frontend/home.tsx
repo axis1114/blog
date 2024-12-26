@@ -169,6 +169,7 @@ export const WebHome = () => {
                     {item.cover_url && (
                       <div className="flex-shrink-0 w-56 h-40 overflow-hidden border border-gray-200 group">
                         <img
+                          loading="lazy"
                           src={item.cover_url}
                           alt={item.title}
                           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"

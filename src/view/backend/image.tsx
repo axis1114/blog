@@ -19,6 +19,7 @@ import type { ColumnsType } from "antd/es/table";
 import { UploadOutlined } from "@ant-design/icons";
 import type { RcFile } from "antd/es/upload/interface";
 import { paramsType } from "@/api";
+import { LoadingOutlined } from "@ant-design/icons";
 
 interface PaginationState extends paramsType {
   total: number;
@@ -133,9 +134,27 @@ export const AdminImage = () => {
         <Image
           src={record.path}
           alt={record.name}
-          width={100}
-          height={100}
+          width={96}
+          height={54}
           style={{ objectFit: "cover" }}
+          placeholder={
+            <div
+              style={{
+                width: 96,
+                height: 54,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                background: "#f5f5f5",
+              }}
+            >
+              <LoadingOutlined />
+            </div>
+          }
+          preview={{
+            maskClassName: "customize-mask",
+            mask: <div>预览</div>,
+          }}
         />
       ),
     },

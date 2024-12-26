@@ -51,6 +51,12 @@ export const AdminArticle = () => {
     null
   );
   const [categories, setCategories] = useState<categoryType[]>([]);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imagePagination, setImagePagination] = useState({
+    page: 1,
+    page_size: 20,
+    hasMore: true,
+  });
 
   // 获取文章列表
   const fetchData = async (
@@ -135,17 +141,30 @@ export const AdminArticle = () => {
   };
 
   // 获取图片列表
-  const fetchImages = async () => {
+  const fetchImages = async (page = 1) => {
     try {
-      const res = await imageList({ page: 1, page_size: 999 });
+      setImageLoading(true);
+      const res = await imageList({
+        page,
+        page_size: imagePagination.page_size,
+      });
       if (res.code === 0) {
-        setImages(res.data.list);
+        setImages((prev) =>
+          page === 1 ? res.data.list : [...prev, ...res.data.list]
+        );
+        setImagePagination((prev) => ({
+          ...prev,
+          page,
+          hasMore: res.data.list.length === prev.page_size,
+        }));
       } else {
         message.error(res.message);
       }
     } catch (error) {
       console.error("获取图片列表失败:", error);
       message.error("获取图片列表失败");
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -386,48 +405,68 @@ export const AdminArticle = () => {
           >
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto">
-                <div className="flex flex-wrap gap-4 max-h-[400px] overflow-y-auto p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <div
+                  className="flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300"
+                  onScroll={(e) => {
+                    const { scrollTop, scrollHeight, clientHeight } =
+                      e.currentTarget;
+                    // 滚动到底部时加载更多
+                    if (
+                      scrollHeight - scrollTop - clientHeight < 50 &&
+                      !imageLoading &&
+                      imagePagination.hasMore
+                    ) {
+                      fetchImages(imagePagination.page + 1);
+                    }
+                  }}
+                >
                   {images.length > 0 ? (
-                    images.map((image) => (
-                      <div
-                        key={image.id}
-                        onClick={() => handleSelectCover(image.id)}
-                        className={`
-                          relative w-48 h-27 flex-shrink-0 cursor-pointer rounded-lg overflow-hidden
-                          ${
-                            selectedCoverId === image.id
-                              ? "ring-2 ring-blue-500 ring-offset-2"
-                              : "border border-gray-200 hover:border-blue-300"
-                          }
-                          transition-all duration-200 group
-                        `}
-                      >
-                        <img
-                          src={image.path}
-                          alt={image.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        {/* 选中状态遮罩 */}
-                        {selectedCoverId === image.id && (
-                          <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                            <div className="bg-white rounded-full p-1">
-                              <svg
-                                className="w-4 h-4 text-blue-500"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
+                    <>
+                      {images.map((image) => (
+                        <div
+                          key={image.id}
+                          onClick={() => handleSelectCover(image.id)}
+                          className={`
+                            relative w-48 h-27 flex-shrink-0 cursor-pointer rounded-lg overflow-hidden
+                            ${
+                              selectedCoverId === image.id
+                                ? "ring-2 ring-blue-500 ring-offset-2"
+                                : "border border-gray-200 hover:border-blue-300"
+                            }
+                            transition-all duration-200 group
+                          `}
+                        >
+                          <img
+                            src={image.path}
+                            alt={image.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {selectedCoverId === image.id && (
+                            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                              <div className="bg-white rounded-full p-1">
+                                <svg
+                                  className="w-4 h-4 text-blue-500"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    ))
+                          )}
+                        </div>
+                      ))}
+                      {imageLoading && (
+                        <div className="w-full flex justify-center p-4">
+                          <Spin />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-32 flex flex-col items-center justify-center text-gray-400">
                       <svg
