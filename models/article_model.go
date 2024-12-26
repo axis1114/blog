@@ -9,9 +9,6 @@ import (
 
 	"blog/global"
 
-	"sync/atomic"
-
-	"github.com/avast/retry-go"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/refresh"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/sortorder"
@@ -47,20 +44,6 @@ const (
 	timeout      = time.Second * 5
 )
 
-// ArticleServiceInterface 定义文章服务接口
-type ArticleServiceInterface interface {
-	CreateIndex() error
-	IndexExists() (bool, error)
-	DeleteIndex() error
-	CreateArticle(*Article) error
-	UpdateArticle(*Article) error
-	DeleteArticle(string) error
-	DeleteArticles([]string) error
-	GetArticle(string) (*Article, error)
-	SearchArticles(SearchParams) (*SearchResult, error)
-	ArticleExists(string) (bool, error)
-}
-
 // ArticleService 文章服务
 type ArticleService struct {
 	ctx        context.Context
@@ -68,14 +51,20 @@ type ArticleService struct {
 	retryCount int
 	retryDelay time.Duration
 	mu         sync.RWMutex
-	// 添加性能监控指标
-	metrics *ArticleMetrics
 }
 
-// ArticleMetrics 性能监控指标
-type ArticleMetrics struct {
-	cacheHits   int64
-	cacheMisses int64
+// SearchParams 搜索参数
+type SearchParams struct {
+	PageInfo
+	Category  string `json:"category" form:"category"`
+	SortField string `json:"sort_field" form:"sort_field"`
+	SortOrder string `json:"sort_order" form:"sort_order"`
+}
+
+// SearchResult 搜索结果
+type SearchResult struct {
+	Articles []Article
+	Total    int64
 }
 
 // NewArticleService 创建文章服务实例
@@ -85,7 +74,6 @@ func NewArticleService() *ArticleService {
 		cache:      global.Redis,
 		retryCount: 3,
 		retryDelay: time.Millisecond * 100,
-		metrics:    &ArticleMetrics{},
 	}
 }
 
@@ -109,6 +97,7 @@ func (s *ArticleService) CreateIndex() error {
 		}
 	}
 
+	// 索引映射
 	properties := map[string]types.Property{
 		"title":          types.NewTextProperty(),
 		"abstract":       types.NewTextProperty(),
@@ -129,6 +118,7 @@ func (s *ArticleService) CreateIndex() error {
 
 	_, err = global.Es.Indices.Create(articleIndex).
 		Mappings(&types.TypeMapping{
+			// 设置索引的映射规则
 			Properties: properties,
 		}).
 		Do(ctx)
@@ -182,7 +172,7 @@ func (s *ArticleService) CreateArticle(article *Article) error {
 	_, err = global.Es.Index(articleIndex).
 		Id(article.ID).
 		Document(article).
-		Refresh(refresh.True).
+		Refresh(refresh.True). // 刷新索引，确保文章立即可见
 		Do(ctx)
 
 	if err != nil {
@@ -194,7 +184,6 @@ func (s *ArticleService) CreateArticle(article *Article) error {
 }
 
 // GetArticle 获取文章
-// 优化后的获取文章方法，包含重试机制和更好的缓存策略
 func (s *ArticleService) GetArticle(id string) (*Article, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
@@ -202,52 +191,34 @@ func (s *ArticleService) GetArticle(id string) (*Article, error) {
 	// 1. 优先从缓存获取
 	article, err := s.getCache(id)
 	if err == nil {
-		atomic.AddInt64(&s.metrics.cacheHits, 1)
-		// 异步更新访问计数
-		go func() {
-			if err := s.incrementLookCount(id); err != nil {
-				global.Log.Error("更新访问计数失败",
-					zap.String("id", id),
-					zap.Error(err))
-			}
-		}()
 		return article, nil
 	}
-	atomic.AddInt64(&s.metrics.cacheMisses, 1)
 
 	// 2. 使用重试机制从 ES 获取文章
 	var result Article
-	err = retry.Do(
-		func() error {
-			resp, err := global.Es.Get(articleIndex, id).Do(ctx)
-			if err != nil {
-				return err
-			}
-			return json.Unmarshal(resp.Source_, &result)
-		},
-		retry.Attempts(uint(s.retryCount)),
-		retry.Delay(s.retryDelay),
-		retry.OnRetry(func(n uint, err error) {
-			global.Log.Warn("重试获取文章",
-				zap.String("id", id),
-				zap.Uint("attempt", n),
-				zap.Error(err))
-		}),
-	)
-
+	resp, err := global.Es.Get(articleIndex, id).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("获取文章失败: %w", err)
+	} else {
+		if err := json.Unmarshal(resp.Source_, &result); err != nil {
+			return nil, fmt.Errorf("解析文章数据失败: %w", err)
+		}
 	}
 
-	// 3. 智能缓存策略：根据文章热度决定是否缓存
+	// 4. 更新访问计数
+	if err := s.IncrementLookCount(id); err != nil {
+		global.Log.Error("更新访问计数失败",
+			zap.String("id", id),
+			zap.Error(err))
+	}
+
+	// 5. 设置缓存
 	if shouldCache(result.LookCount) {
-		go func() {
-			if err := s.setCache(id, &result); err != nil {
-				global.Log.Warn("设置缓存失败",
-					zap.String("id", id),
-					zap.Error(err))
-			}
-		}()
+		if err := s.setCache(id, &result); err != nil {
+			global.Log.Error("设置缓存失败",
+				zap.String("id", id),
+				zap.Error(err))
+		}
 	}
 
 	return &result, nil
@@ -256,8 +227,7 @@ func (s *ArticleService) GetArticle(id string) (*Article, error) {
 // shouldCache 判断是否应该缓存文章
 func shouldCache(lookCount uint) bool {
 	// 根据访问量决定是否缓存
-	// 可以根据实际情况调整缓存策略
-	return lookCount > 50 || // 热门文章
+	return lookCount > 50 ||
 		lookCount > 10 && time.Now().Hour() >= 8 && time.Now().Hour() <= 22 // 工作时间内的次热门文章
 }
 
@@ -436,20 +406,6 @@ func (s *ArticleService) deleteCache(id string) error {
 	return s.cache.Del(s.ctx, key).Err()
 }
 
-// SearchParams 搜索参数
-type SearchParams struct {
-	PageInfo
-	Category  string `json:"category" form:"category"`
-	SortField string `json:"sort_field" form:"sort_field"`
-	SortOrder string `json:"sort_order" form:"sort_order"`
-}
-
-// SearchResult 搜索结果
-type SearchResult struct {
-	Articles []Article
-	Total    int64
-}
-
 // ArticleExists 检查文章是否存在
 func (s *ArticleService) ArticleExists(id string) (bool, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
@@ -470,51 +426,197 @@ func (s *ArticleService) ArticleExists(id string) (bool, error) {
 	return exists, nil
 }
 
-// incrementLookCount 增加文章访问计数
-// 优化后的计数器更新方法，包含批量更新机制
-func (s *ArticleService) incrementLookCount(id string) error {
+// ArticleStats 文章统计数据
+type ArticleStats struct {
+	TotalArticles int64 `json:"total_articles"` // 文章总数
+	TotalComments int64 `json:"total_comments"` // 评论数
+	TotalViews    int64 `json:"total_views"`    // 总浏览量
+	TotalDiggs    int64 `json:"total_diggs"`    // 总点赞数
+	TotalCollects int64 `json:"total_collects"` // 总收藏数
+}
+
+// GetArticleStats 获取文章统计数据
+func (s *ArticleService) GetArticleStats() (*ArticleStats, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeout)
 	defer cancel()
 
-	// 使用乐观锁更新��问计数
-	script := types.InlineScript{
-		Source: `
-			if (ctx._source.containsKey('look_count')) {
-				ctx._source.look_count++;
-			} else {
-				ctx._source.look_count = 1;
-			}
-		`,
+	// 从缓存获取统计数据
+	stats, err := s.getStatsFromCache()
+	if err == nil {
+		return stats, nil
 	}
 
-	// 重试机制
-	err := retry.Do(
-		func() error {
-			_, err := global.Es.Update(articleIndex, id).
-				Script(&script).
-				Refresh(refresh.True).
-				Do(ctx)
-			return err
+	// 构建聚合查询
+	aggs := map[string]types.Aggregations{
+		"total_comments": {
+			Sum: &types.SumAggregation{
+				Field: &[]string{"comment_count"}[0],
+			},
 		},
-		retry.Attempts(uint(s.retryCount)),
-		retry.Delay(s.retryDelay),
-	)
+		"total_views": {
+			Sum: &types.SumAggregation{
+				Field: &[]string{"look_count"}[0],
+			},
+		},
+		"total_diggs": {
+			Sum: &types.SumAggregation{
+				Field: &[]string{"digg_count"}[0],
+			},
+		},
+		"total_collects": {
+			Sum: &types.SumAggregation{
+				Field: &[]string{"collects_count"}[0],
+			},
+		},
+	}
+
+	// 执行查询
+	resp, err := global.Es.Search().
+		Index(articleIndex).
+		Size(0). // 我们只需要聚合结果
+		Aggregations(aggs).
+		Do(ctx)
 
 	if err != nil {
-		return fmt.Errorf("更新访问计数失败: %w", err)
+		return nil, fmt.Errorf("获取统计数据失败: %w", err)
 	}
 
-	// 异步更新缓存
-	go func() {
-		if article, err := s.getCache(id); err == nil {
-			article.LookCount++
-			if err := s.setCache(id, article); err != nil {
-				global.Log.Warn("更新缓存计数失败",
-					zap.String("id", id),
-					zap.Error(err))
-			}
-		}
-	}()
+	// 解析结果
+	stats = &ArticleStats{
+		TotalArticles: resp.Hits.Total.Value,
+	}
 
-	return nil
+	if commentAgg, found := resp.Aggregations["total_comments"]; found {
+		var sumAgg types.SumAggregate
+		commentBytes, _ := json.Marshal(commentAgg)
+		if err := json.Unmarshal(commentBytes, &sumAgg); err == nil {
+			stats.TotalComments = int64(sumAgg.Value)
+		}
+	}
+
+	if viewsAgg, found := resp.Aggregations["total_views"]; found {
+		var sumAgg types.SumAggregate
+		viewBytes, _ := json.Marshal(viewsAgg)
+		if err := json.Unmarshal(viewBytes, &sumAgg); err == nil {
+			stats.TotalViews = int64(sumAgg.Value)
+		}
+	}
+
+	if diggsAgg, found := resp.Aggregations["total_diggs"]; found {
+		var sumAgg types.SumAggregate
+		diggsBytes, _ := json.Marshal(diggsAgg)
+		if err := json.Unmarshal(diggsBytes, &sumAgg); err == nil {
+			stats.TotalDiggs = int64(sumAgg.Value)
+		}
+	}
+
+	if collectsAgg, found := resp.Aggregations["total_collects"]; found {
+		var sumAgg types.SumAggregate
+		collectsBytes, _ := json.Marshal(collectsAgg)
+		if err := json.Unmarshal(collectsBytes, &sumAgg); err == nil {
+			stats.TotalCollects = int64(sumAgg.Value)
+		}
+	}
+
+	// 缓存统计数据
+	go s.cacheStats(stats)
+
+	return stats, nil
+}
+
+// getStatsFromCache 从缓存获取统计数据
+func (s *ArticleService) getStatsFromCache() (*ArticleStats, error) {
+	data, err := s.cache.Get(s.ctx, "article:stats").Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	var stats ArticleStats
+	if err := json.Unmarshal(data, &stats); err != nil {
+		return nil, err
+	}
+
+	return &stats, nil
+}
+
+// cacheStats 缓存统计数据
+func (s *ArticleService) cacheStats(stats *ArticleStats) {
+	data, err := json.Marshal(stats)
+	if err != nil {
+		global.Log.Error("序列化统计数据失败", zap.Error(err))
+		return
+	}
+
+	// 缓存 5 分钟
+	if err := s.cache.Set(s.ctx, "article:stats", data, time.Minute*5).Err(); err != nil {
+		global.Log.Error("缓存统计数据失败", zap.Error(err))
+	}
+}
+
+// IncrementCount 更新指定计数字段
+func (s *ArticleService) IncrementCount(id string, field string, increment int) error {
+	ctx, cancel := context.WithTimeout(s.ctx, timeout)
+	defer cancel()
+
+	// 1. 更新 ES 中的数据
+	script := fmt.Sprintf("ctx._source.%s += params.increment", field)
+	_, err := global.Es.Update(articleIndex, id).
+		Script(&types.InlineScript{
+			Source: script,
+			Params: map[string]json.RawMessage{
+				"increment": json.RawMessage(fmt.Sprintf("%d", increment)),
+			},
+		}).
+		Refresh(refresh.True).
+		Do(ctx)
+
+	if err != nil {
+		return fmt.Errorf("更新%s失败: %w", field, err)
+	}
+
+	// 2. 更新缓存
+	article, err := s.GetArticle(id)
+	if err != nil {
+		global.Log.Error("获取文章失败",
+			zap.String("id", id),
+			zap.Error(err))
+		return nil
+	}
+
+	return s.setCache(id, article)
+}
+
+// IncrementLookCount 增加浏览量
+func (s *ArticleService) IncrementLookCount(id string) error {
+	return s.IncrementCount(id, "look_count", 1)
+}
+
+// IncrementCommentCount 增加评论量
+func (s *ArticleService) IncrementCommentCount(id string) error {
+	return s.IncrementCount(id, "comment_count", 1)
+}
+
+// IncrementDiggCount 增加点赞量
+func (s *ArticleService) IncrementDiggCount(id string) error {
+	return s.IncrementCount(id, "digg_count", 1)
+}
+
+// IncrementCollectsCount 增加收藏量
+func (s *ArticleService) IncrementCollectsCount(id string) error {
+	return s.IncrementCount(id, "collects_count", 1)
+}
+
+// DecrementCount 减少指定计数字段
+func (s *ArticleService) DecrementCount(id string, field string) error {
+	return s.IncrementCount(id, field, -1)
+}
+
+// DecrementDiggCount 减少点赞量（取消点赞）
+func (s *ArticleService) DecrementDiggCount(id string) error {
+	return s.DecrementCount(id, "digg_count")
+}
+
+// DecrementCollectsCount 减少收藏量（取消收藏）
+func (s *ArticleService) DecrementCollectsCount(id string) error {
+	return s.DecrementCount(id, "collects_count")
 }

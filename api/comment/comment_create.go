@@ -21,7 +21,7 @@ func (cm *Comment) CommentCreate(c *gin.Context) {
 	claims := _claims.(*utils.CustomClaims)
 	var req CommentCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+		global.Log.Error("c.ShouldBindJSON() failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}
@@ -37,6 +37,14 @@ func (cm *Comment) CommentCreate(c *gin.Context) {
 	if err := models.CreateComment(comment); err != nil {
 		global.Log.Error("comment.CreateComment() failed", zap.Error(err))
 		res.Error(c, res.ServerError, "创建评论失败")
+		return
+	}
+
+	// 5. 更新文章评论数
+	articleService := models.ArticleService{}
+	if err := articleService.IncrementCommentCount(comment.ArticleID); err != nil {
+		global.Log.Error("comment.IncrementCommentCount() failed", zap.Error(err))
+		res.Error(c, res.ServerError, "更新文章评论数失败")
 		return
 	}
 
