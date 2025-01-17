@@ -11,7 +11,7 @@ import (
 func (u *User) UserDelete(c *gin.Context) {
 	var req models.IDRequest
 	if err := c.ShouldBindUri(&req); err != nil {
-		global.Log.Error("c.ShouldBindUri failed", zap.Error(err))
+		global.Log.Error("c.ShouldBindUri() failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}

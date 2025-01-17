@@ -21,27 +21,20 @@ var snowflake *SnowflakeNode
 // Init 初始化雪花算法节点
 // startTime: 起始时间，格式："2006-01-02"
 // machineID: 机器ID (0-1023)
-func Init(startTime string, machineID int64) error {
-	if machineID < 0 || machineID > 1023 {
-		return fmt.Errorf("machine ID 必须在0到1023之间")
-	}
-
+func Init(startTime string, machineID int64) {
 	st, err := time.Parse("2006-01-02", startTime)
 	if err != nil {
-		global.Log.Error("time.Parse() failed", zap.Error(err))
-		return fmt.Errorf("time.Parse() failed: %w", err)
+		global.Log.Fatal("time.Parse() failed", zap.Error(err))
 	}
 
 	sf.Epoch = st.UnixNano() / 1000000
 
 	node, err := sf.NewNode(machineID)
 	if err != nil {
-		global.Log.Error("sf.NewNode() failed", zap.Error(err))
-		return fmt.Errorf("sf.NewNode() failed: %w", err)
+		global.Log.Fatal("sf.NewNode() failed", zap.Error(err))
 	}
 
 	snowflake = &SnowflakeNode{node: node}
-	return nil
 }
 
 // GenerateID 生成唯一ID

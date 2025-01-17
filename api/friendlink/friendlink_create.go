@@ -17,7 +17,7 @@ type FriendLinkCreate struct {
 func (f *FriendLink) FriendLinkCreate(c *gin.Context) {
 	var req FriendLinkCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		global.Log.Error("c.ShouldBindJSON failed", zap.Error(err))
+		global.Log.Error("c.ShouldBindJSON() failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}

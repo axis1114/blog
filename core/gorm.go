@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"blog/global"
 
@@ -14,6 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// InitGorm 初始化Gorm
 func InitGorm() *gorm.DB {
 	// 验证配置
 	if err := validateMysqlConfig(); err != nil {
@@ -32,12 +32,6 @@ func InitGorm() *gorm.DB {
 		return nil
 	}
 
-	// 配置连接池
-	if err := configureConnectionPool(db); err != nil {
-		global.Log.Fatal("配置连接池失败", zap.Error(err))
-		return nil
-	}
-
 	global.Log.Info("MySQL连接成功")
 	return db
 }
@@ -46,6 +40,18 @@ func InitGorm() *gorm.DB {
 func validateMysqlConfig() error {
 	if global.Config.Mysql.Host == "" {
 		return fmt.Errorf("未配置MySQL主机地址")
+	}
+	if global.Config.Mysql.Port == 0 {
+		return fmt.Errorf("未配置MySQL端口")
+	}
+	if global.Config.Mysql.User == "" {
+		return fmt.Errorf("未配置MySQL用户名")
+	}
+	if global.Config.Mysql.Password == "" {
+		return fmt.Errorf("未配置MySQL密码")
+	}
+	if global.Config.Mysql.DB == "" {
+		return fmt.Errorf("未配置MySQL数据库名")
 	}
 	return nil
 }
@@ -68,7 +74,7 @@ func connectDatabase(dsn string, mysqlLogger logger.Interface) (*gorm.DB, error)
 // 处理数据库错误
 func handleDatabaseError(err error, mysqlLogger logger.Interface) {
 	if strings.Contains(err.Error(), "1049") {
-		global.Log.Error(fmt.Sprintf("数据库不存在: %s", global.Config.Mysql.DB))
+		global.Log.Errorf("数据库不存在: %s", global.Config.Mysql.DB)
 		createDatabase(mysqlLogger)
 	} else {
 		global.Log.Fatal("MySQL连接失败",
@@ -98,20 +104,6 @@ func createDatabase(mysqlLogger logger.Interface) {
 		return
 	}
 
-	global.Log.Info(fmt.Sprintf("数据库 %s 创建成功，请创建表结构", global.Config.Mysql.DB))
+	global.Log.Infof("数据库 %s 创建成功，请创建表结构", global.Config.Mysql.DB)
 	os.Exit(0)
-}
-
-// 配置连接池
-func configureConnectionPool(db *gorm.DB) error {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-
-	sqlDB.SetMaxIdleConns(global.Config.Mysql.MaxIdleConns)
-	sqlDB.SetMaxOpenConns(global.Config.Mysql.MaxOpenConns)
-	sqlDB.SetConnMaxLifetime(time.Hour * 4)
-
-	return nil
 }

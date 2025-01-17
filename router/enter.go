@@ -5,7 +5,6 @@ import (
 
 	"blog/core"
 	"blog/global"
-	"blog/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,7 +18,6 @@ func InitRouter() *gin.Engine {
 	gin.SetMode(global.Config.System.Env)
 	router := gin.New()
 	router.Use(core.GinMiddleware(), core.GinRecovery())
-	router.Use(utils.Cors())
 	//将指定目录下的文件提供给客户端
 	//"uploads" 是URL路径前缀，http.Dir("uploads")是实际文件系统s中存储文件的目录
 	router.StaticFS("uploads", http.Dir("uploads"))

@@ -23,7 +23,7 @@ func GetAddrByIp(ip string) string {
 	}
 	record, err := global.AddrDB.City(net.ParseIP(ip))
 	if err != nil {
-		return fmt.Sprintf("%s-%s", "错误的地址", ip)	
+		return fmt.Sprintf("%s-%s", "错误的地址", ip)
 	}
 	var province string
 	if len(record.Subdivisions) > 0 {

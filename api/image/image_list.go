@@ -14,7 +14,7 @@ func (i *Image) ImageList(c *gin.Context) {
 	var req models.PageInfo
 	err := c.ShouldBindQuery(&req)
 	if err != nil {
-		global.Log.Error("c.ShouldBindQuery failed", zap.Error(err))
+		global.Log.Error("c.ShouldBindQuery() failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}

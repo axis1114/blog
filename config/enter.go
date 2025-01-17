@@ -15,6 +15,8 @@ type Config struct {
 	Upload  Upload  `mapstructure:"upload"`
 }
 
+
+
 func (m Mysql) Dsn() string {
 	return m.User + ":" + m.Password + "@tcp(" + m.Host + ":" + strconv.Itoa(m.Port) + ")/" + m.DB + "?charset=utf8mb4&parseTime=True&loc=Local"
 }

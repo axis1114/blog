@@ -22,7 +22,7 @@ func Newflags() {
 		{
 			Name:    "database",
 			Aliases: []string{"db"},
-			Usage:   "创建表",
+			Usage:   "建表",
 			Action:  DB,
 		},
 		{
@@ -102,8 +102,7 @@ func Newflags() {
 	if len(os.Args) > 1 {
 		err := app.Run(os.Args)
 		if err != nil {
-			global.Log.Error("初始化命令失败", zap.Error(err))
-			os.Exit(1)
+			global.Log.Fatal("初始化命令失败", zap.Error(err))
 		}
 		os.Exit(0)
 	}

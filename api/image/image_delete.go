@@ -13,7 +13,7 @@ func (i *Image) ImageDelete(c *gin.Context) {
 	var req models.IDRequest
 	err := c.ShouldBindUri(&req)
 	if err != nil {
-		global.Log.Error("c.ShouldBindUri failed", zap.Error(err))
+		global.Log.Error("c.ShouldBindUri() failed", zap.Error(err))
 		res.Error(c, res.InvalidParameter, "参数验证失败")
 		return
 	}

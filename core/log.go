@@ -5,6 +5,7 @@ import (
 	"blog/global"
 	"bytes"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -18,10 +19,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// NewLogger 创建新的日志管理器
-// 如果未提供配置，将使用默认配置
-func NewLogManager(config *config.Log) (*zap.SugaredLogger, error) {
-	// 使用默认配置（如果未提供）
+// NewLogManager 创建新的日志管理器
+func NewLogManager(config *config.Log) *zap.SugaredLogger {
+	// 如果配置为空，则使用默认配置
 	if config == nil {
 		config = getDefaultConfig()
 	}
@@ -29,14 +29,14 @@ func NewLogManager(config *config.Log) (*zap.SugaredLogger, error) {
 	// 创建日志管理器实例
 	sugarLogger, err := initialize(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize logger: %v", err)
+		log.Fatalf("Failed to initialize logger: %v", err)
+		return nil
 	}
 
-	return sugarLogger, nil
+	return sugarLogger
 }
 
 // initialize 初始化日志管理器
-// 配置日志输出、编码方式和日志级别
 func initialize(config *config.Log) (*zap.SugaredLogger, error) {
 	// 获取日志写入器
 	writeSyncer := getLogWriter(
@@ -75,14 +75,15 @@ func initialize(config *config.Log) (*zap.SugaredLogger, error) {
 		zap.AddCaller(),                       // 添加调用者信息
 		zap.AddStacktrace(zapcore.ErrorLevel), // 错误时添加堆栈跟踪
 	)
+	// 将普通的 logger 转换为 "Sugar" 版本
 	sugarLogger := logger.Sugar()
+	// 将全局日志记录器替换为当前日志记录器
 	zap.ReplaceGlobals(logger)
 
 	return sugarLogger, nil
 }
 
 // getEncoder 获取日志编码器
-// 配置日志的输出格式
 func getEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
 
@@ -105,7 +106,6 @@ func getEncoder() zapcore.Encoder {
 }
 
 // getLogWriter 获取日志写入器
-// 配置日志的输出位置和轮转策略
 func getLogWriter(filename string, maxSize, maxBackup, maxAge int) zapcore.WriteSyncer {
 	lumberJackLogger := &lumberjack.Logger{
 		Filename:   filename,  // 日志文件路径
