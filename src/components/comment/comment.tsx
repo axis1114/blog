@@ -1,6 +1,6 @@
 ﻿import { RootState } from "@/store";
 import { Comment } from "@ant-design/compatible";
-import { Button, Form, Input, List, message } from "antd";
+import { Button, Form, Input, List, message, FormInstance } from "antd";
 import { useCallback, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
@@ -67,22 +67,88 @@ const CommentContent = ({
       <Button
         type="link"
         className="text-indigo-600 hover:text-indigo-800 p-0 font-medium transition-colors"
-        onClick={onReply}
-      >
+        onClick={onReply}>
         回复
       </Button>
       {isAdmin && (
         <Button
           type="link"
           className="text-red-600 hover:text-red-800 p-0 font-medium transition-colors"
-          onClick={onDelete}
-        >
+          onClick={onDelete}>
           删除
         </Button>
       )}
     </div>
   </div>
 );
+
+/**
+ * 评论表单组件
+ * 显示评论表单和提交按钮
+ */
+const CommentForm = ({
+  form,
+  replyTo,
+  isLoggedIn,
+  submitting,
+  onSubmit,
+  onCancelReply,
+  onLogin,
+}: {
+  form: FormInstance;
+  replyTo: ReplyTo | null;
+  isLoggedIn: boolean;
+  submitting: boolean;
+  onSubmit: (values: { content: string }) => void;
+  onCancelReply: () => void;
+  onLogin: () => void;
+}) => {
+  if (!isLoggedIn) {
+    return (
+      <div className="text-center py-8 bg-slate-50 border-2 border-dashed border-slate-200">
+        <p className="text-slate-700 mb-4 font-medium">登录后才能发表评论</p>
+        <Button
+          type="primary"
+          onClick={onLogin}
+          className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700 shadow-sm transition-all">
+          去登录
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Form form={form} onFinish={onSubmit} className="space-y-4 comment-form">
+      <Form.Item
+        name="content"
+        rules={[{ max: 500, message: "评论内容不能超过500字" }]}>
+        <TextArea
+          rows={4}
+          placeholder={replyTo ? `回复 ${replyTo.name}...` : "写下你的评论..."}
+          className="resize-none border-slate-300 hover:border-indigo-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+          maxLength={500}
+        />
+      </Form.Item>
+      <Form.Item className="mb-0 text-right">
+        {replyTo && (
+          <Button
+            className="mr-4 text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 shadow-sm transition-all"
+            onClick={onCancelReply}
+            type="text">
+            取消回复
+          </Button>
+        )}
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={submitting}
+          className="px-8 bg-indigo-600 hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700 shadow-sm transition-all">
+          {replyTo ? "回复" : "发表评论"}
+        </Button>
+      </Form.Item>
+    </Form>
+  );
+};
 
 /**
  * 评论区组件
@@ -94,25 +160,25 @@ export const CommentArea = ({
   className,
   articleId: propArticleId,
 }: CommentAreaProps) => {
-  // 表单实例
+  // 3. 使用自定义 Hook 管理状态
   const [form] = Form.useForm();
-  // 提交状态
-  const [submitting, setSubmitting] = useState(false);
-  // 回复目标状态
-  const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
+  const [state, setState] = useState({
+    submitting: false,
+    replyTo: null as ReplyTo | null,
+  });
+
   const navigate = useNavigate();
-
-  // 从Redux获取用户登录状态和角色信息
-  const isLoggedIn = useSelector((state: RootState) => state.web.user.isLogin);
-  const userRole = useSelector(
-    (state: RootState) => state.web.user.userInfo?.role
-  );
-  const isAdmin = userRole === "admin";
-
-  // 获取文章ID，优先使用props传入的ID，其次使用路由参数
   const { id: routeArticleId } = useParams<{ id: string }>();
   const articleId = propArticleId || routeArticleId;
 
+  // 4. 从 Redux 获取用户状态
+  const { isLoggedIn, userRole } = useSelector((state: RootState) => ({
+    isLoggedIn: state.web.user.isLogin,
+    userRole: state.web.user.userInfo?.role,
+  }));
+  const isAdmin = userRole === "admin";
+
+  // 5. 使用 useCallback 优化方法
   const checkLogin = useCallback(() => {
     if (!isLoggedIn) {
       message.warning("请先登录后再进行评论");
@@ -130,17 +196,17 @@ export const CommentArea = ({
       }
 
       try {
-        setSubmitting(true);
+        setState((prev) => ({ ...prev, submitting: true }));
         const res = await commentCreate({
           content: values.content,
           article_id: articleId,
-          parent_comment_id: replyTo?.id,
+          parent_comment_id: state.replyTo?.id,
         });
 
         if (res.code === 0) {
           message.success("评论发表成功");
           form.resetFields();
-          setReplyTo(null);
+          setState((prev) => ({ ...prev, replyTo: null }));
           onCommentSuccess();
         } else {
           message.error(res.message);
@@ -149,21 +215,24 @@ export const CommentArea = ({
         console.error("评论发表失败:", error);
         message.error("评论发表失败");
       } finally {
-        setSubmitting(false);
+        setState((prev) => ({ ...prev, submitting: false }));
       }
     },
-    [articleId, checkLogin, form, onCommentSuccess, replyTo]
+    [articleId, form, onCommentSuccess, state.replyTo]
   );
 
   const handleReply = useCallback(
     (comment: commentType) => {
       if (!checkLogin()) return;
 
-      setReplyTo({
-        id: comment.id,
-        name: comment.user.nick_name,
-      });
-      // 滚动到评论框
+      setState((prev) => ({
+        ...prev,
+        replyTo: {
+          id: comment.id,
+          name: comment.user.nick_name,
+        },
+      }));
+
       document.querySelector(".comment-form")?.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -192,7 +261,7 @@ export const CommentArea = ({
     [checkLogin, onCommentSuccess]
   );
 
-  // 渲染单条评论及其子评论
+  // 6. 使用 useCallback 优化渲染评论方法
   const renderComment = useCallback(
     (comment: commentType, index: number) => (
       <Comment
@@ -213,13 +282,11 @@ export const CommentArea = ({
         datetime={
           <span className="text-slate-500 text-sm">{comment.created_at}</span>
         }
-        className="bg-slate-50 hover:bg-indigo-50/50 transition-colors duration-200 p-4 border-2 border-slate-300"
-      >
+        className="bg-slate-50 hover:bg-indigo-50/50 transition-colors duration-200 p-4 border-2 border-slate-300">
         {comment.sub_comments?.map((subComment, subIndex) => (
           <div
             key={subComment.id}
-            className="pl-6 mt-4 border-l-2 border-indigo-200"
-          >
+            className="pl-6 mt-4 border-l-2 border-indigo-200">
             {renderComment(subComment, subIndex)}
           </div>
         ))}
@@ -232,70 +299,19 @@ export const CommentArea = ({
     <div className={`bg-white border-2 border-slate-300 ${className}`}>
       <div className="p-6 border-b-2 border-slate-300 bg-gradient-to-b from-white to-slate-50">
         <h3 className="text-xl font-bold text-slate-800 mb-4">
-          {replyTo ? `回复 ${replyTo.name}` : "发表评论"}
+          {state.replyTo ? `回复 ${state.replyTo.name}` : "发表评论"}
         </h3>
-        {isLoggedIn ? (
-          <Form
-            form={form}
-            onFinish={handleSubmit}
-            className="space-y-4 comment-form"
-          >
-            <Form.Item
-              name="content"
-              rules={[{ max: 500, message: "评论内容不能超过500字" }]}
-            >
-              <TextArea
-                rows={4}
-                placeholder={
-                  replyTo ? `回复 ${replyTo.name}...` : "写下你的评论..."
-                }
-                className="resize-none border-slate-300 hover:border-indigo-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20 transition-all"
-                maxLength={500}
-              />
-            </Form.Item>
-            <Form.Item className="mb-0 text-right">
-              {replyTo && (
-                <Button
-                  className="mr-4 text-slate-600 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 shadow-sm transition-all"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setReplyTo(null);
-                  }}
-                  type="text"
-                  htmlType="button"
-                >
-                  取消回复
-                </Button>
-              )}
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={submitting}
-                className="px-8 bg-indigo-600 hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700 shadow-sm transition-all"
-              >
-                {replyTo ? "回复" : "发表评论"}
-              </Button>
-            </Form.Item>
-          </Form>
-        ) : (
-          <div className="text-center py-8 bg-slate-50 border-2 border-dashed border-slate-200">
-            <p className="text-slate-700 mb-4 font-medium">
-              登录后才能发表评论
-            </p>
-            <Button
-              type="primary"
-              onClick={() =>
-                navigate("/login", {
-                  state: { from: location.pathname },
-                })
-              }
-              className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 hover:border-indigo-700 shadow-sm transition-all"
-            >
-              去登录
-            </Button>
-          </div>
-        )}
+        <CommentForm
+          form={form}
+          replyTo={state.replyTo}
+          isLoggedIn={isLoggedIn}
+          submitting={state.submitting}
+          onSubmit={handleSubmit}
+          onCancelReply={() => setState((prev) => ({ ...prev, replyTo: null }))}
+          onLogin={() =>
+            navigate("/login", { state: { from: location.pathname } })
+          }
+        />
       </div>
       <List
         className="divide-y-2 divide-slate-300"

@@ -1,67 +1,35 @@
-﻿import {
+﻿import { paramsType } from "@/api";
+import { LoadingOutlined, UploadOutlined } from "@ant-design/icons";
+import {
   Button,
   Image,
+  message,
   Modal,
   Space,
+  Spin,
   Table,
   Upload,
-  message,
-  Spin,
 } from "antd";
-import { useEffect, useState } from "react";
+import type { ColumnsType } from "antd/es/table";
+import type { RcFile } from "antd/es/upload/interface";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   imageDelete,
   imageList,
   imageType,
   imageUpload,
 } from "../../api/image";
-import type { ColumnsType } from "antd/es/table";
-import { UploadOutlined } from "@ant-design/icons";
-import type { RcFile } from "antd/es/upload/interface";
-import { paramsType } from "@/api";
-import { LoadingOutlined } from "@ant-design/icons";
 
 interface PaginationState extends paramsType {
   total: number;
 }
 
-export const AdminImage = () => {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<imageType[]>([]);
+const usePagination = (defaultPageSize = 10) => {
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
-    page_size: 10,
+    page_size: defaultPageSize,
     total: 0,
   });
-
-  // 获取图片列表
-  const fetchData = async (
-    page = pagination.page,
-    page_size = pagination.page_size
-  ) => {
-    try {
-      setLoading(true);
-      const params: paramsType = {
-        page,
-        page_size: page_size,
-      };
-      const res = await imageList(params);
-      if (res.code === 0) {
-        setData(res.data.list);
-        setPagination((prev) => ({
-          ...prev,
-          total: res.data.total,
-        }));
-      } else {
-        message.error(res.message);
-      }
-    } catch (error) {
-      console.error("获取图片列表失败:", error);
-      message.error("获取图片列表失败");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePageChange = (page: number, pageSize?: number) => {
     setPagination((prev) => ({
@@ -69,134 +37,184 @@ export const AdminImage = () => {
       page,
       page_size: pageSize || prev.page_size,
     }));
-    fetchData(page, pageSize);
   };
 
-  // 删除图片
-  const handleDelete = async (id: number) => {
-    Modal.confirm({
-      title: "确认删除",
-      content: "确定要删除这张图片吗？删除后不可恢复。",
-      onOk: async () => {
-        try {
-          const res = await imageDelete(id);
-          if (res.code === 0) {
-            message.success("删除成功");
-            fetchData(pagination.page);
-          } else {
-            message.error(res.message);
-          }
-        } catch (error) {
-          message.error("删除失败");
-          console.error("删除失败:", error);
-        }
-      },
-    });
-  };
+  return { pagination, setPagination, handlePageChange };
+};
 
-  // 上传图片
-  const handleUpload = async (file: RcFile) => {
-    try {
-      const files = file instanceof FileList ? Array.from(file) : [file];
-      const res = await imageUpload(files);
-      if (res.code === 0) {
-        message.success("上传成功");
-        fetchData(pagination.page);
-      } else {
-        message.error(res.message);
-      }
-    } catch (error) {
-      console.error("上传失败:", error);
-      message.error("上传失败");
+const ImagePreview = ({ src, alt }: { src: string; alt: string }) => (
+  <Image
+    src={src}
+    alt={alt}
+    width={96}
+    height={54}
+    style={{ objectFit: "cover" }}
+    placeholder={
+      <div className="w-24 h-[54px] flex justify-center items-center bg-gray-100">
+        <LoadingOutlined />
+      </div>
     }
-    return false;
-  };
+    preview={{
+      maskClassName: "customize-mask",
+      mask: <div>预览</div>,
+    }}
+  />
+);
 
-  // 添加文件类型和大小限制
+const getImageColumns = (
+  handleDelete: (id: number) => void
+): ColumnsType<imageType> => [
+  {
+    title: "ID",
+    dataIndex: "id",
+    key: "id",
+  },
+  {
+    title: "预览",
+    key: "preview",
+    render: (_, record) => <ImagePreview src={record.path} alt={record.name} />,
+  },
+  {
+    title: "文件名",
+    dataIndex: "name",
+    key: "name",
+  },
+  {
+    title: "类型",
+    dataIndex: "type",
+    key: "type",
+  },
+  {
+    title: "大小",
+    dataIndex: "size",
+    key: "size",
+    render: (size) => `${(size / 1024).toFixed(2)} KB`,
+  },
+  {
+    title: "上传时间",
+    dataIndex: "created_at",
+    key: "created_at",
+  },
+  {
+    title: "操作",
+    key: "action",
+    render: (_, record) => (
+      <Space size="middle">
+        <Button type="link" danger onClick={() => handleDelete(record.id)}>
+          删除
+        </Button>
+      </Space>
+    ),
+  },
+];
+
+const ImageUploader = ({
+  onUpload,
+}: {
+  onUpload: (file: RcFile) => Promise<boolean>;
+}) => {
   const uploadProps = {
-    beforeUpload: handleUpload,
+    beforeUpload: onUpload,
     showUploadList: false,
     accept: "image/*",
     maxSize: 20 * 1024 * 1024, // 20MB
     multiple: true,
   };
 
-  const columns: ColumnsType<imageType> = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
+  return (
+    <Upload.Dragger {...uploadProps}>
+      <p className="ant-upload-drag-icon">
+        <UploadOutlined style={{ fontSize: 48, color: "#40a9ff" }} />
+      </p>
+      <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
+      <p className="ant-upload-hint">
+        支持同时上传多张图片，单个文件大小不超过20MB
+      </p>
+    </Upload.Dragger>
+  );
+};
+
+export const AdminImage = () => {
+  const [state, setState] = useState({
+    loading: false,
+    data: [] as imageType[],
+  });
+
+  const { pagination, setPagination, handlePageChange } = usePagination();
+
+  const fetchData = useCallback(
+    async (page = pagination.page, page_size = pagination.page_size) => {
+      try {
+        setState((prev) => ({ ...prev, loading: true }));
+        const res = await imageList({ page, page_size });
+
+        if (res.code === 0) {
+          setState((prev) => ({ ...prev, data: res.data.list }));
+          setPagination((prev) => ({ ...prev, total: res.data.total }));
+        } else {
+          message.error(res.message);
+        }
+      } catch (error) {
+        console.error("获取图片列表失败:", error);
+        message.error("获取图片列表失败");
+      } finally {
+        setState((prev) => ({ ...prev, loading: false }));
+      }
     },
-    {
-      title: "预览",
-      key: "preview",
-      render: (_, record) => (
-        <Image
-          src={record.path}
-          alt={record.name}
-          width={96}
-          height={54}
-          style={{ objectFit: "cover" }}
-          placeholder={
-            <div
-              style={{
-                width: 96,
-                height: 54,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                background: "#f5f5f5",
-              }}
-            >
-              <LoadingOutlined />
-            </div>
+    [pagination]
+  );
+
+  const handleDelete = useCallback(
+    (id: number) => {
+      Modal.confirm({
+        title: "确认删除",
+        content: "确定要删除这张图片吗？删除后不可恢复。",
+        onOk: async () => {
+          try {
+            const res = await imageDelete(id);
+            if (res.code === 0) {
+              message.success("删除成功");
+              fetchData(pagination.page, pagination.page_size);
+            } else {
+              message.error(res.message);
+            }
+          } catch (error) {
+            message.error("删除失败");
+            console.error("删除失败:", error);
           }
-          preview={{
-            maskClassName: "customize-mask",
-            mask: <div>预览</div>,
-          }}
-        />
-      ),
+        },
+      });
     },
-    {
-      title: "文件名",
-      dataIndex: "name",
-      key: "name",
+    [pagination]
+  );
+
+  const handleUpload = useCallback(
+    async (file: RcFile) => {
+      try {
+        const files = file instanceof FileList ? Array.from(file) : [file];
+        const res = await imageUpload(files);
+        if (res.code === 0) {
+          message.success("上传成功");
+          fetchData(pagination.page, pagination.page_size);
+        } else {
+          message.error(res.message);
+        }
+      } catch (error) {
+        console.error("上传失败:", error);
+        message.error("上传失败");
+      }
+      return false;
     },
-    {
-      title: "类型",
-      dataIndex: "type",
-      key: "type",
-    },
-    {
-      title: "大小",
-      dataIndex: "size",
-      key: "size",
-      render: (size) => `${(size / 1024).toFixed(2)} KB`,
-    },
-    {
-      title: "上传时间",
-      dataIndex: "created_at",
-      key: "created_at",
-    },
-    {
-      title: "操作",
-      key: "action",
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="link" danger onClick={() => handleDelete(record.id)}>
-            删除
-          </Button>
-        </Space>
-      ),
-    },
-  ];
+    [pagination]
+  );
+
+  const columns = useMemo(() => getImageColumns(handleDelete), [handleDelete]);
 
   useEffect(() => {
-    fetchData(pagination.page, pagination.page_size);
+    fetchData();
   }, []);
 
-  if (loading) {
+  if (state.loading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-60px)]">
         <Spin size="large" />
@@ -206,20 +224,13 @@ export const AdminImage = () => {
 
   return (
     <div className="admin_image">
-      <div>
-        <Upload.Dragger {...uploadProps}>
-          <p className="ant-upload-drag-icon">
-            <UploadOutlined style={{ fontSize: 48, color: "#40a9ff" }} />
-          </p>
-          <p className="ant-upload-text">点击或拖拽图片到此区域上传</p>
-          <p className="ant-upload-hint">
-            支持同时上传多张图片，单个文件大小不超过20MB
-          </p>
-        </Upload.Dragger>
+      <div className="mb-6">
+        <ImageUploader onUpload={handleUpload} />
       </div>
+
       <Table
         columns={columns}
-        dataSource={data}
+        dataSource={state.data}
         rowKey="id"
         pagination={{
           position: ["bottomCenter"],
@@ -232,7 +243,7 @@ export const AdminImage = () => {
           showTotal: (total) => `共 ${total} 条`,
           className: "py-8",
         }}
-        loading={loading}
+        loading={state.loading}
       />
     </div>
   );

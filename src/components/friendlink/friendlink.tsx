@@ -4,10 +4,8 @@ import { friendlinkList, friendlinkType } from "../../api/friendlink";
 
 export const FriendLinkList = () => {
   const [friendlinks, setFriendlinks] = useState<friendlinkType[]>([]);
-  const [loading, setLoading] = useState(true);
   const fetchFriendlinks = async () => {
     try {
-      setLoading(true);
       const res = await friendlinkList({ page: 1, page_size: 100 });
       if (res.code === 0) {
         setFriendlinks(res.data.list);
@@ -17,18 +15,12 @@ export const FriendLinkList = () => {
     } catch (error) {
       console.error("获取友链列表失败:", error);
       message.error("获取友链列表失败");
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchFriendlinks();
   }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="bg-white">
@@ -45,8 +37,7 @@ export const FriendLinkList = () => {
               rel="noopener noreferrer"
               className="px-6 py-2 text-gray-600 w-full  
                                      text-base font-medium 
-                                     flex items-center gap-2"
-            >
+                                     flex items-center gap-2">
               {link.name}
             </a>
           ))}

@@ -3,7 +3,7 @@ import { AuthGuard } from "@/components/authguard/authguard";
 import { ArticleDetail } from "@/components/detail/detail";
 import { AdminLogin } from "@/components/login/login";
 import { NotFound } from "@/components/notfound/notfound";
-import { AdminArticle } from "@/view/backend/artilce";
+import { AdminArticle } from "@/view/backend/article";
 import { AdminCategory } from "@/view/backend/category";
 import { AdminComment } from "@/view/backend/comment";
 import { AdminFriendlink } from "@/view/backend/friendlink";

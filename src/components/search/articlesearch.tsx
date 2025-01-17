@@ -5,7 +5,6 @@ import { useState } from "react";
 
 export const ArticleSearch = () => {
   const [searchSuggestions, setSearchSuggestions] = useState<articleType[]>([]);
-  const [loading, setLoading] = useState(false);
   // 处理搜索框输入，获取搜索建议
   const handleSearchInput = async (value: string) => {
     if (!value.trim()) {
@@ -14,7 +13,6 @@ export const ArticleSearch = () => {
     }
 
     try {
-      setLoading(true);
       const params: articleParamsType = {
         page: 1,
         page_size: 5,
@@ -26,8 +24,6 @@ export const ArticleSearch = () => {
       }
     } catch (error) {
       console.error("获取搜索建议失败:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -35,10 +31,6 @@ export const ArticleSearch = () => {
   const handleSelect = (_: string, option: any) => {
     window.location.href = `/article/${option.key}`;
   };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="p-8">
@@ -65,16 +57,14 @@ export const ArticleSearch = () => {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
-                }}
-              >
+                }}>
                 {article.title}
               </div>
             </div>
           ),
           value: article.title,
           key: article.id,
-        }))}
-      >
+        }))}>
         <Input.Search
           placeholder="搜索文章..."
           allowClear
